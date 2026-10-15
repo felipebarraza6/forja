@@ -6,16 +6,66 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages-staging
   cancel-in-progress: false
 
 jobs:
+  enable-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Activar / configurar GitHub Pages (Actions)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          REPO="${{ github.repository }}"
+          echo "Estado actual de Pages:"
+          gh api "repos/$REPO/pages" 2>&1 || true
+
+          # Preferir build por GitHub Actions
+          gh api -X POST "repos/$REPO/pages" \
+            -H "Accept: application/vnd.github+json" \
+            --input - <<'JSON'
+          {"build_type":"workflow"}
+          JSON
+          POST_CODE=$?
+
+          if [ $POST_CODE -ne 0 ]; then
+            echo "POST falló; intentando PUT build_type=workflow…"
+            gh api -X PUT "repos/$REPO/pages" \
+              -H "Accept: application/vnd.github+json" \
+              --input - <<'JSON'
+          {"build_type":"workflow"}
+          JSON
+          fi
+
+          # Fallback: source = rama gh-pages
+          gh api -X POST "repos/$REPO/pages" \
+            -H "Accept: application/vnd.github+json" \
+            --input - <<'JSON'
+          {"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}
+          JSON
+          || true
+
+          gh api -X PUT "repos/$REPO/pages" \
+            -H "Accept: application/vnd.github+json" \
+            --input - <<'JSON'
+          {"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}
+          JSON
+          || true
+
+          echo "Estado final:"
+          gh api "repos/$REPO/pages" 2>&1 || true
+          exit 0
+
   build:
+    needs: enable-pages
     runs-on: ubuntu-latest
     env:
       VITE_YGGDRA_API_BASE: https://api.yggdra.cl/api
@@ -38,6 +88,22 @@ jobs:
         with:
           path: dist
 
+      - name: Publicar también en rama gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          WORK=$(pwd)
+          TMP=$(mktemp -d)
+          cp -a dist/. "$TMP/"
+          touch "$TMP/.nojekyll"
+          cd "$TMP"
+          git init
+          git checkout -b gh-pages
+          git add -A
+          git commit -m "Deploy staging $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+          git push -f origin gh-pages
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -45,6 +111,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy a GitHub Pages
+      - name: Deploy a GitHub Pages (Actions)
         id: deployment
+        continue-on-error: true
         uses: actions/deploy-pages@v4
