@@ -43,11 +43,14 @@ Si la API no responde o aún no existen los endpoints `/api/forja/*`, la app ent
 
 ### Activar GitHub Pages (una vez)
 
-1. Repo → **Settings** → **Pages**
-2. **Source:** GitHub Actions
-3. Tras el primer merge a `main`, el workflow *Deploy staging* publica en:
-   - `https://felipebarraza6.github.io/forja/`
-4. Asegurar que el origen `https://felipebarraza6.github.io` esté en CORS del backend (ver `docs/backend-needs.md`)
+El workflow de deploy falla con *Failed to create deployment (404)* hasta que Pages esté habilitado:
+
+1. Abrir https://github.com/felipebarraza6/forja/settings/pages
+2. En **Build and deployment → Source**, elegir **GitHub Actions** (no “Deploy from a branch”)
+3. Guardar / confirmar
+4. Re-lanzar el workflow: Actions → **Deploy staging (GitHub Pages)** → *Run workflow* (branch `main`), o hacer un push vacío a `main`
+5. Staging esperado: https://felipebarraza6.github.io/forja/
+6. Añadir `https://felipebarraza6.github.io` a CORS del backend (ver `docs/backend-needs.md`)
 
 ## Backend
 
