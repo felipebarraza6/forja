@@ -1,5 +1,8 @@
 name: Deploy staging (GitHub Pages)
 
+# Pages del repo está en modo legacy: branch main, path /.
+# Publicamos el build (assets + 404 + .nojekyll) en la raíz de main.
+
 on:
   push:
     branches: [main]
@@ -9,64 +12,15 @@ permissions:
   contents: write
   pages: write
   id-token: write
-  actions: read
 
 concurrency:
   group: pages-staging
   cancel-in-progress: false
 
 jobs:
-  enable-pages:
+  publish:
     runs-on: ubuntu-latest
-    steps:
-      - name: Activar / configurar GitHub Pages (Actions)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set +e
-          REPO="${{ github.repository }}"
-          echo "Estado actual de Pages:"
-          gh api "repos/$REPO/pages" 2>&1 || true
-
-          # Preferir build por GitHub Actions
-          gh api -X POST "repos/$REPO/pages" \
-            -H "Accept: application/vnd.github+json" \
-            --input - <<'JSON'
-          {"build_type":"workflow"}
-          JSON
-          POST_CODE=$?
-
-          if [ $POST_CODE -ne 0 ]; then
-            echo "POST falló; intentando PUT build_type=workflow…"
-            gh api -X PUT "repos/$REPO/pages" \
-              -H "Accept: application/vnd.github+json" \
-              --input - <<'JSON'
-          {"build_type":"workflow"}
-          JSON
-          fi
-
-          # Fallback: source = rama gh-pages
-          gh api -X POST "repos/$REPO/pages" \
-            -H "Accept: application/vnd.github+json" \
-            --input - <<'JSON'
-          {"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}
-          JSON
-          || true
-
-          gh api -X PUT "repos/$REPO/pages" \
-            -H "Accept: application/vnd.github+json" \
-            --input - <<'JSON'
-          {"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}
-          JSON
-          || true
-
-          echo "Estado final:"
-          gh api "repos/$REPO/pages" 2>&1 || true
-          exit 0
-
-  build:
-    needs: enable-pages
-    runs-on: ubuntu-latest
+    if: github.event.head_commit.message != 'chore: publish staging [skip ci]'
     env:
       VITE_YGGDRA_API_BASE: https://api.yggdra.cl/api
     steps:
@@ -83,35 +37,42 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Subir artifact Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-      - name: Publicar también en rama gh-pages
+      - name: Publicar assets en main (source de Pages)
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          WORK=$(pwd)
+          set -e
+          cp -a dist/assets/. assets/
+          cp -f dist/404.html 404.html
+          cp -f dist/favicon.svg favicon.svg
+          touch .nojekyll
+          # También mantener rama gh-pages alineada
           TMP=$(mktemp -d)
           cp -a dist/. "$TMP/"
           touch "$TMP/.nojekyll"
-          cd "$TMP"
-          git init
-          git checkout -b gh-pages
-          git add -A
-          git commit -m "Deploy staging $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
-          git push -f origin gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy a GitHub Pages (Actions)
-        id: deployment
+          # Push gh-pages
+          (
+            cd "$TMP"
+            git init
+            git checkout -b gh-pages
+            git add -A
+            git commit -m "Deploy staging"
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+            git push -f origin gh-pages
+          )
+
+          # Commit en main si hay cambios de publish
+          git add assets 404.html favicon.svg .nojekyll
+          if git diff --staged --quiet; then
+            echo "Sin cambios de publish"
+            exit 0
+          fi
+          git commit -m "chore: publish staging [skip ci]"
+          git push origin HEAD:main
+
+      - name: Intentar deploy Actions (si algún día cambia a workflow)
         continue-on-error: true
-        uses: actions/deploy-pages@v4
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist

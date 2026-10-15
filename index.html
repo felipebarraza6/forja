@@ -12,6 +12,17 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      const onPages = location.hostname.endsWith('github.io')
+      if (onPages) {
+        const css = document.createElement('link')
+        css.rel = 'stylesheet'
+        css.href = '/forja/assets/index.css'
+        document.head.appendChild(css)
+        import('/forja/assets/index.js')
+      } else {
+        import('/src/main.tsx')
+      }
+    </script>
   </body>
 </html>

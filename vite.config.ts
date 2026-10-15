@@ -13,4 +13,15 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  build: {
+    // Nombres estables: Pages sirve desde main `/` y el index de desarrollo
+    // carga estos assets cuando corre en github.io.
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/index.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name][extname]',
+      },
+    },
+  },
 })
