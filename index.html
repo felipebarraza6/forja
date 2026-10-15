@@ -9,20 +9,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
     <title>Forja</title>
+    <script type="module" crossorigin src="/forja/assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="/forja/assets/index.css">
   </head>
   <body>
     <div id="root"></div>
-    <script type="module">
-      const onPages = location.hostname.endsWith('github.io')
-      if (onPages) {
-        const css = document.createElement('link')
-        css.rel = 'stylesheet'
-        css.href = '/forja/assets/index.css'
-        document.head.appendChild(css)
-        import('/forja/assets/index.js')
-      } else {
-        import('/src/main.tsx')
-      }
-    </script>
   </body>
 </html>
