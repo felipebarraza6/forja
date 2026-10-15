@@ -31,34 +31,34 @@ export function Landing() {
       <section className="relative z-10 mx-auto flex min-h-[78dvh] max-w-6xl flex-col justify-center px-4 pb-16 pt-6">
         <motion.p
           className="eyebrow mb-4"
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0.6, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
+          transition={{ duration: 0.35 }}
         >
           Para personal trainers
         </motion.p>
         <motion.h1
           className="font-display max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight text-text sm:text-6xl md:text-7xl"
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0.85, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.05 }}
+          transition={{ duration: 0.4 }}
         >
           Forja
         </motion.h1>
         <motion.p
           className="mt-5 max-w-xl text-lg text-text-muted sm:text-xl"
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0.7, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
         >
           Vende tu servicio, guía a tus alumnos y sigue su adherencia — entrenamiento, nutrición y
           chat en un solo lugar.
         </motion.p>
         <motion.div
           className="mt-8 flex flex-wrap gap-3"
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0.75, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.25 }}
+          transition={{ duration: 0.35, delay: 0.08 }}
         >
           <Button asChild size="lg">
             <Link to="/login">
