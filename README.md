@@ -26,8 +26,24 @@ Scripts:
 |---------|----------|
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript |
-| `npm test` | Vitest |
+| `npm test` | Vitest (unit + integración con mocks del contrato) |
+| `npm run e2e` | Playwright E2E en modo demo (flujos coach y alumno) |
+| `npm run e2e:real` | E2E opcional contra la API real (ver abajo) |
+| `npm run report:validation` | Regenera `docs/informe-validacion.pdf` |
+| `npm run validate` | test + e2e + informe PDF |
 | `npm run build` | Build + `404.html` (SPA fallback) |
+
+### E2E contra API real (`e2e:real`)
+
+Suite **opcional** que llama a `https://api.yggdra.cl/api` con `X-Branch-ID: 91`. **No corre en CI** por defecto.
+
+```bash
+export FORJA_VALIDACION_EMAIL='coach@…'
+export FORJA_VALIDACION_PASSWORD='…'
+npm run e2e:real
+```
+
+Si las variables no están definidas, las pruebas se omiten (skip). El usuario debe ser el **coach de validación** (no admin: crear `services/` y escribir `adherence-rules` requiere admin). Los datos que crea la suite llevan el prefijo `QA-` y se intentan limpiar al final (DELETE/PATCH cuando la API lo permite).
 
 ## Roles MVP
 
@@ -41,7 +57,7 @@ Contrato confirmado: [`docs/contract-gaps.md`](docs/contract-gaps.md). Auditorí
 
 ## CI / CD
 
-- **CI** (`.github/workflows/ci.yml`): lint + typecheck + tests + build en cada PR/push a `main`
+- **CI** (`.github/workflows/ci.yml`): lint + typecheck + tests (unit/integración) + build + E2E demo (Playwright) + informe PDF en cada PR/push a `main`. Artifact `forja-validacion` incluye el PDF y capturas. **No** ejecuta `e2e:real`.
 - **CD** (`.github/workflows/deploy-pages.yml`): despliega staging a GitHub Pages en cada merge a `main`
 
 ### Staging (GitHub Pages)
@@ -70,9 +86,14 @@ src/
   lib/api/        # client Yggdra + dominio Forja + demo
   pages/          # landing, login, coach/*, alumno/*
 docs/
-  contract-gaps.md   # contrato API confirmado
-  audit.md           # auditoría y hallazgos
-  backend-needs.md   # histórico (parcialmente obsoleto)
+  contract-gaps.md         # contrato API confirmado
+  audit.md                 # auditoría y hallazgos
+  backend-needs.md         # histórico (parcialmente obsoleto)
+  informe-validacion.pdf   # informe de validación E2E
+e2e/
+  coach-flows.spec.ts      # demo
+  alumno-flows.spec.ts     # demo
+  real/                    # API real (npm run e2e:real)
 ```
 
 ## Diseño
