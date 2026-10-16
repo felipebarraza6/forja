@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Wallet } from 'lucide-react'
 import { listServices, listSubscriptions, registerSubscription } from '@/lib/api/forja'
 import { listStudents } from '@/lib/api/forja'
@@ -16,11 +16,19 @@ import { toast } from 'sonner'
 export function CoachServicios() {
   const qc = useQueryClient()
   const services = useQuery({ queryKey: ['services'], queryFn: listServices })
-  const subs = useQuery({ queryKey: ['subs'], queryFn: listSubscriptions })
-  const students = useQuery({ queryKey: ['students'], queryFn: listStudents })
-  const [studentId, setStudentId] = useState('stu-2')
-  const [planId, setPlanId] = useState('plan-base')
+  const subs = useQuery({ queryKey: ['subs'], queryFn: () => listSubscriptions() })
+  const students = useQuery({ queryKey: ['students'], queryFn: () => listStudents() })
+  const [studentId, setStudentId] = useState('')
+  const [planId, setPlanId] = useState('')
   const [note, setNote] = useState('Registro manual de suscripción')
+
+  useEffect(() => {
+    if (!studentId && students.data?.[0]) setStudentId(students.data[0].id)
+  }, [students.data, studentId])
+
+  useEffect(() => {
+    if (!planId && services.data?.[0]) setPlanId(services.data[0].id)
+  }, [services.data, planId])
 
   const create = useMutation({
     mutationFn: async () => {

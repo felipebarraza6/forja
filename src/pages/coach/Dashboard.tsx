@@ -10,10 +10,10 @@ import { PageSkeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/lib/utils'
 
 export function CoachDashboard() {
-  const students = useQuery({ queryKey: ['students'], queryFn: listStudents })
+  const students = useQuery({ queryKey: ['students'], queryFn: () => listStudents() })
   const threads = useQuery({ queryKey: ['threads'], queryFn: listThreads })
   const checkIns = useQuery({ queryKey: ['checkins'], queryFn: () => listCheckIns() })
-  const subs = useQuery({ queryKey: ['subs'], queryFn: listSubscriptions })
+  const subs = useQuery({ queryKey: ['subs'], queryFn: () => listSubscriptions() })
 
   const activos = students.data?.filter((s) => s.status === 'activo').length ?? 0
   const unread = threads.data?.reduce((acc, t) => acc + t.unread, 0) ?? 0

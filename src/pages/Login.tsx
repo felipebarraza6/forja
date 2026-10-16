@@ -93,6 +93,7 @@ export function Login() {
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
+                aria-pressed={role === r}
                 className={cn(
                   'rounded-md border px-3 py-1.5 text-sm capitalize transition-[background-color,border-color,color] duration-200',
                   role === r

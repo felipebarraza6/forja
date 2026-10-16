@@ -160,12 +160,13 @@ export function Mensajes() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Escribe un mensaje…"
+              aria-label="Mensaje"
               className="min-h-[44px] flex-1 resize-none"
               rows={2}
             />
             <Button
               type="submit"
-              disabled={!body.trim() || send.isPending}
+              disabled={!body.trim() || send.isPending || !selected}
               className="sm:self-end"
             >
               Enviar
