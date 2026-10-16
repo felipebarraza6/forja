@@ -9,6 +9,7 @@ import type {
   ServiceBillingUi,
   ServicePlan,
   Student,
+  StudentStatus,
   SubscriptionRecord,
   TrainingPlan,
   WaterLog,
@@ -16,6 +17,7 @@ import type {
   WorkoutExercise,
   WorkoutLog,
 } from './types'
+import { STUDENT_STATUSES } from './types'
 
 /** IDs de UI siempre string; la API suele devolver number. */
 export function idStr(value: unknown, fallback = ''): string {
@@ -35,6 +37,12 @@ function str(value: unknown, fallback = ''): string {
 function bool(value: unknown, fallback = false): boolean {
   if (value == null) return fallback
   return Boolean(value)
+}
+
+/** `invitado` y otros valores desconocidos → activo (API no acepta invitado). */
+export function normalizeStudentStatus(value: unknown): StudentStatus {
+  const s = str(value, 'activo')
+  return (STUDENT_STATUSES as readonly string[]).includes(s) ? (s as StudentStatus) : 'activo'
 }
 
 /** Macros viven en el alumno (calories_target, protein_target, …). */
@@ -94,7 +102,7 @@ export function normalizeStudent(raw: Record<string, unknown>): Student {
     email: str(raw.email),
     plan_id: planId,
     plan_name: planName,
-    status: (str(raw.status, 'activo') as Student['status']) || 'activo',
+    status: normalizeStudentStatus(raw.status),
     adherence_pct: num(raw.adherence_pct ?? raw.adherence, 0),
     started_at: str(raw.started_at ?? raw.created_at).slice(0, 10),
     goals: str(raw.goal ?? raw.goals),

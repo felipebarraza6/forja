@@ -60,13 +60,21 @@ export interface ServicePlan {
   features: string[]
 }
 
+/**
+ * Status de alumno Forja (API).
+ * Nota: `invitado` NO es válido en el backend (POST → 400).
+ * Valores usados en demo/UI y aceptados por la API: activo | pausado | vencido.
+ */
+export const STUDENT_STATUSES = ['activo', 'pausado', 'vencido'] as const
+export type StudentStatus = (typeof STUDENT_STATUSES)[number]
+
 export interface Student {
   id: string
   full_name: string
   email: string
   plan_id: string
   plan_name: string
-  status: 'activo' | 'pausado' | 'vencido' | 'invitado'
+  status: StudentStatus
   adherence_pct: number
   started_at: string
   goals: string

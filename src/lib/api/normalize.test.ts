@@ -3,12 +3,20 @@ import {
   normalizeMeal,
   normalizeService,
   normalizeStudent,
+  normalizeStudentStatus,
   normalizeTrainingPlan,
   normalizeWater,
   normalizeWorkoutLog,
 } from './normalize'
 
 describe('normalize', () => {
+  it('mapea status invitado (inválido en API) a activo', () => {
+    expect(normalizeStudentStatus('invitado')).toBe('activo')
+    expect(normalizeStudentStatus('pausado')).toBe('pausado')
+    expect(normalizeStudentStatus('vencido')).toBe('vencido')
+    expect(normalizeStudent({ id: 1, status: 'invitado' }).status).toBe('activo')
+  })
+
   it('normaliza student con macros target_* y service anidado', () => {
     const s = normalizeStudent({
       id: 7,

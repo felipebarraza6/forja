@@ -125,7 +125,8 @@ export class RealApiClient {
         email: `qa.forja.${stamp}@example.com`,
         full_name,
         goals: qa('objetivo-validacion'),
-        status: 'invitado',
+        // API rechaza "invitado" (400). Valores válidos: activo | pausado | vencido.
+        status: 'activo',
       },
     })
     if (!res.ok) {
