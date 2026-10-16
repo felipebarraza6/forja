@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
 
 export function CoachAlumnos() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['students'], queryFn: listStudents })
+  const { data = [], isLoading } = useQuery({ queryKey: ['students'], queryFn: () => listStudents() })
 
   return (
     <div className="space-y-6">

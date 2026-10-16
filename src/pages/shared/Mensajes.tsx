@@ -131,10 +131,11 @@ export function Mensajes() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Escribe un mensaje…"
+              aria-label="Mensaje"
               className="min-h-[44px] resize-none"
               rows={2}
             />
-            <Button type="submit" disabled={!body.trim() || send.isPending}>
+            <Button type="submit" disabled={!body.trim() || send.isPending || !selected}>
               Enviar
             </Button>
           </form>

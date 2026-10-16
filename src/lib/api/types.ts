@@ -21,23 +21,35 @@ export interface User {
   first_name?: string
   last_name?: string
   role?: Role
+  /** Rol Forja en el objeto user (login_complete). */
+  forja_role?: Role | null
 }
 
 export interface LoginResponse {
   token: string
   user: User
   branches?: Branch[]
-  /** Rol de producto Forja; si falta se infiere o se elige en login demo. */
-  forja_role?: Role
+  /** Rol Forja en la raíz de login_complete. */
+  forja_role?: Role | null
 }
+
+/** billing_period API → etiqueta UI legible. */
+export type ServiceBillingUi = 'mensual' | 'trimestral' | 'anual' | 'unico'
+
+export type ServiceBillingPeriod = 'monthly' | 'quarterly' | 'yearly' | 'one_time'
 
 export interface ServicePlan {
   id: string
   name: string
   description: string
   price_clp: number
-  billing: 'mensual' | 'anual' | 'unico'
+  billing: ServiceBillingUi
+  billing_period: ServiceBillingPeriod
+  duration_weeks: number | null
+  includes_nutrition: boolean
+  includes_training: boolean
   active: boolean
+  /** Derivado de includes_* para la UI actual. */
   features: string[]
 }
 
@@ -52,6 +64,9 @@ export interface Student {
   started_at: string
   goals: string
   macros: MacroTargets
+  sessions_per_week?: number
+  height_cm?: number
+  weight_kg?: number
 }
 
 export interface MacroTargets {
@@ -62,18 +77,39 @@ export interface MacroTargets {
   water_ml: number
 }
 
+/** Payload PATCH /forja/students/{id}/macros/ */
+export interface StudentMacrosPatch {
+  calories_target?: number
+  protein_target?: number
+  carbs_target?: number
+  fats_target?: number
+  water_target_ml?: number
+  sessions_per_week?: number
+  height_cm?: number
+  weight_kg?: number
+  goal?: string
+}
+
 export interface WorkoutExercise {
+  id?: string
   name: string
   sets: number
   reps: string
   rest_sec: number
+  position?: number
+  tempo?: string
+  load_kg?: number
   notes?: string
+  video_url?: string
 }
 
 export interface WorkoutDay {
   id: string
   day_label: string
   focus: string
+  weekday?: number | null
+  position?: number
+  notes?: string
   exercises: WorkoutExercise[]
 }
 
@@ -81,20 +117,28 @@ export interface TrainingPlan {
   id: string
   student_id: string
   title: string
+  notes: string
+  effective_from: string | null
+  effective_to: string | null
+  is_current: boolean
+  /** Estimado desde effective_* o 0 si no aplica. */
   weeks: number
   days: WorkoutDay[]
 }
+
+export type MealType = 'desayuno' | 'almuerzo' | 'once' | 'cena' | 'snack'
 
 export interface MealLog {
   id: string
   student_id: string
   date: string
-  meal: 'desayuno' | 'almuerzo' | 'once' | 'cena' | 'snack'
+  meal: MealType
   description: string
   calories: number
   protein_g: number
   carbs_g: number
   fat_g: number
+  notes?: string
 }
 
 export interface WaterLog {
@@ -134,6 +178,12 @@ export interface AdherenceRule {
   enabled: boolean
 }
 
+export interface WeeklyAdherence {
+  student_id: string
+  week_start: string
+  raw?: Record<string, unknown>
+}
+
 export interface ChatMessage {
   id: string
   thread_id: string
@@ -149,6 +199,12 @@ export interface ChatThread {
   unread: number
   last_message?: string
   updated_at: string
+}
+
+export interface StreamTokenResponse {
+  stream_token: string
+  expires_in: number
+  stream_path: string
 }
 
 export interface SubscriptionRecord {

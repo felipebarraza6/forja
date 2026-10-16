@@ -34,8 +34,10 @@ Scripts:
 - **Coach:** panel, alumnos, servicios/planes, adherencia, mensajes, registro manual de suscripciones
 - **Alumno:** ver plan, registrar entrenos / comidas / agua, chat con el coach
 
-API real: `VITE_YGGDRA_API_BASE` (default `https://api.yggdra.cl/api`). Login usa `forja_role` y branch **91**.  
+API real: `VITE_YGGDRA_API_BASE` (default `https://api.yggdra.cl/api`). Login usa `forja_role` (raíz y `user`) y branch **91**.  
 **Modo demo** solo con los botones de `/login` (`?demo=coach` / `?demo=alumno`) o si la API no es alcanzable (red/5xx). Errores 4xx de credenciales no caen a demo.
+
+Contrato confirmado: [`docs/contract-gaps.md`](docs/contract-gaps.md). Auditoría: [`docs/audit.md`](docs/audit.md).
 
 ## CI / CD
 
@@ -68,7 +70,9 @@ src/
   lib/api/        # client Yggdra + dominio Forja + demo
   pages/          # landing, login, coach/*, alumno/*
 docs/
-  backend-needs.md
+  contract-gaps.md   # contrato API confirmado
+  audit.md           # auditoría y hallazgos
+  backend-needs.md   # histórico (parcialmente obsoleto)
 ```
 
 ## Diseño
