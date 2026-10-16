@@ -8,6 +8,7 @@ import {
   listMeals,
   listWorkoutLogs,
 } from '@/lib/api/forja'
+import { mealTypeLabel, studentStatusBadgeVariant, studentStatusLabel } from '@/lib/api/labels'
 import { EmptyState } from '@/components/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -59,7 +60,9 @@ export function CoachAlumnoDetail() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="success">{s.adherence_pct}% adherencia</Badge>
-            <Badge variant="secondary">{s.status}</Badge>
+            <Badge variant={studentStatusBadgeVariant(s.status)}>
+              {studentStatusLabel(s.status)}
+            </Badge>
           </div>
         </div>
         <p className="mt-3 text-sm text-text-muted">Objetivo: {s.goals}</p>
@@ -139,7 +142,7 @@ export function CoachAlumnoDetail() {
             {(meals.data ?? []).map((m) => (
               <li key={m.id} className="surface flex items-start justify-between gap-3 p-4">
                 <div className="min-w-0">
-                  <p className="font-medium capitalize">{m.meal}</p>
+                  <p className="font-medium">{mealTypeLabel(m.meal)}</p>
                   <p className="text-sm text-text-muted">{m.description}</p>
                 </div>
                 <div className="shrink-0 text-right text-sm tabular text-text-muted">

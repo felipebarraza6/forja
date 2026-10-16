@@ -3,6 +3,11 @@ import { useEffect, useState } from 'react'
 import { Wallet } from 'lucide-react'
 import { listServices, listSubscriptions, registerSubscription } from '@/lib/api/forja'
 import { listStudents } from '@/lib/api/forja'
+import {
+  billingPeriodLabel,
+  subscriptionStatusBadgeVariant,
+  subscriptionStatusLabel,
+} from '@/lib/api/labels'
 import { EmptyState } from '@/components/empty-state'
 import { StaggerItem } from '@/components/page-motion'
 import { Badge } from '@/components/ui/badge'
@@ -41,7 +46,7 @@ export function CoachServicios() {
         plan_id: plan.id,
         plan_name: plan.name,
         amount_clp: plan.price_clp,
-        status: 'pendiente',
+        status: 'past_due',
         started_at: new Date().toISOString().slice(0, 10),
         note,
       })
@@ -80,7 +85,7 @@ export function CoachServicios() {
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="font-display text-lg font-semibold">{plan.name}</h2>
                   <Badge variant={plan.active ? 'success' : 'secondary'}>
-                    {plan.active ? 'activo' : 'off'}
+                    {plan.active ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </div>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-text-muted">
@@ -88,7 +93,9 @@ export function CoachServicios() {
                 </p>
                 <p className="mt-4 font-display text-2xl font-semibold tabular">
                   ${plan.price_clp.toLocaleString('es-CL')}
-                  <span className="ml-1 text-sm font-normal text-text-faint">/{plan.billing}</span>
+                  <span className="ml-1 text-sm font-normal text-text-faint">
+                    /{billingPeriodLabel(plan.billing_period).toLowerCase()}
+                  </span>
                 </p>
                 <ul className="mt-3 space-y-1 text-sm text-text-muted">
                   {plan.features.map((f) => (
@@ -173,16 +180,8 @@ export function CoachServicios() {
                   <span className="tabular text-sm font-semibold">
                     ${sub.amount_clp.toLocaleString('es-CL')}
                   </span>
-                  <Badge
-                    variant={
-                      sub.status === 'activa'
-                        ? 'success'
-                        : sub.status === 'pendiente'
-                          ? 'warn'
-                          : 'secondary'
-                    }
-                  >
-                    {sub.status}
+                  <Badge variant={subscriptionStatusBadgeVariant(sub.status)}>
+                    {subscriptionStatusLabel(sub.status)}
                   </Badge>
                 </div>
               </li>

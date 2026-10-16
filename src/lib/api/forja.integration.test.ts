@@ -61,7 +61,7 @@ describe('contrato /api/forja/ (mocks)', () => {
           full_name: 'Ana Demo',
           email: 'ana@test.cl',
           plan: { id: 3, name: 'Elite' },
-          status: 'activo',
+          status: 'active',
           adherence_pct: 88,
           started_at: '2026-01-01',
           goals: 'Fuerza',
@@ -90,7 +90,7 @@ describe('contrato /api/forja/ (mocks)', () => {
       email: 'c@a.cl',
       plan_id: 2,
       plan_name: 'Base',
-      status: 'activo',
+      status: 'active',
       adherence_pct: 70,
       started_at: '2026-02-01',
       goals: 'Recomp',
@@ -139,7 +139,7 @@ describe('contrato /api/forja/ (mocks)', () => {
               id: 1,
               student: 1,
               date: '2026-10-16',
-              meal: 'desayuno',
+              meal: 'breakfast',
               description: 'Avena',
               calories: 400,
               protein_g: 20,
@@ -204,7 +204,7 @@ describe('contrato /api/forja/ (mocks)', () => {
           id: 99,
           student: 1,
           date: '2026-10-16',
-          meal: 'cena',
+          meal: 'dinner',
           description: 'Pollo',
           calories: 500,
           protein_g: 40,
@@ -241,7 +241,7 @@ describe('contrato /api/forja/ (mocks)', () => {
     await createMeal({
       student_id: '1',
       date: '2026-10-16',
-      meal: 'cena',
+      meal: 'dinner',
       description: 'Pollo',
       calories: 500,
       protein_g: 40,
@@ -278,7 +278,7 @@ describe('contrato /api/forja/ (mocks)', () => {
               name: 'Forja Base',
               description: 'Plan base',
               price_clp: 89000,
-              billing: 'mensual',
+              billing_period: 'monthly',
               is_active: true,
               features: ['Chat'],
             },
@@ -293,7 +293,7 @@ describe('contrato /api/forja/ (mocks)', () => {
               id: 1,
               name: 'Entrenos',
               description: '3/sem',
-              metric: 'entrenos',
+              metric: 'training',
               target_per_week: 3,
               enabled: true,
             },
@@ -324,7 +324,7 @@ describe('contrato /api/forja/ (mocks)', () => {
               plan: 1,
               plan_name: 'Base',
               amount_clp: 89000,
-              status: 'activa',
+              status: 'active',
               started_at: '2026-01-01',
             },
           ],
@@ -338,7 +338,7 @@ describe('contrato /api/forja/ (mocks)', () => {
           plan_id: 1,
           plan_name: 'Base',
           amount_clp: 89000,
-          status: 'pendiente',
+          status: 'past_due',
           started_at: '2026-10-16',
           note: 'manual',
         }
@@ -356,7 +356,7 @@ describe('contrato /api/forja/ (mocks)', () => {
     } = await import('./forja')
 
     expect((await listServices())[0]?.name).toBe('Forja Base')
-    expect((await listAdherenceRules())[0]?.metric).toBe('entrenos')
+    expect((await listAdherenceRules())[0]?.metric).toBe('training')
     await toggleAdherenceRule('1')
     expect((await listThreads())[0]?.id).toBe('5')
     expect((await listSubscriptions())[0]?.amount_clp).toBe(89000)
@@ -366,7 +366,7 @@ describe('contrato /api/forja/ (mocks)', () => {
       plan_id: '1',
       plan_name: 'Base',
       amount_clp: 89000,
-      status: 'pendiente',
+      status: 'past_due',
       started_at: '2026-10-16',
       note: 'manual',
     })
@@ -461,7 +461,7 @@ describe('modo demo — dominio completo', () => {
       plan_id: 'plan-base',
       plan_name: 'Forja Base',
       amount_clp: 89000,
-      status: 'pendiente',
+      status: 'past_due',
       started_at: '2026-10-16',
       note: 'test',
     })

@@ -40,16 +40,18 @@ export interface LoginResponse {
   forja_role?: Role | null
 }
 
-/** billing_period API → etiqueta UI legible. */
-export type ServiceBillingUi = 'mensual' | 'trimestral' | 'anual' | 'unico'
-
+/** billing_period API (Service.billing_period). */
 export type ServiceBillingPeriod = 'monthly' | 'quarterly' | 'yearly' | 'one_time'
+
+/** @deprecated Preferir billing_period + BILLING_PERIOD_LABELS. */
+export type ServiceBillingUi = 'mensual' | 'trimestral' | 'anual' | 'unico'
 
 export interface ServicePlan {
   id: string
   name: string
   description: string
   price_clp: number
+  /** Etiqueta UI derivada (es). */
   billing: ServiceBillingUi
   billing_period: ServiceBillingPeriod
   duration_weeks: number | null
@@ -61,11 +63,16 @@ export interface ServicePlan {
 }
 
 /**
- * Status de alumno Forja (API).
- * Nota: `invitado` NO es válido en el backend (POST → 400).
- * Valores usados en demo/UI y aceptados por la API: activo | pausado | vencido.
+ * Student.status (API, inglés). Etiquetas ES en labels.ts.
+ * Default API: invited.
  */
-export const STUDENT_STATUSES = ['activo', 'pausado', 'vencido'] as const
+export const STUDENT_STATUSES = [
+  'invited',
+  'active',
+  'paused',
+  'finished',
+  'cancelled',
+] as const
 export type StudentStatus = (typeof STUDENT_STATUSES)[number]
 
 export interface Student {
@@ -141,7 +148,9 @@ export interface TrainingPlan {
   days: WorkoutDay[]
 }
 
-export type MealType = 'desayuno' | 'almuerzo' | 'once' | 'cena' | 'snack'
+/** Meal.meal_type (API). */
+export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'other'] as const
+export type MealType = (typeof MEAL_TYPES)[number]
 
 export interface MealLog {
   id: string
@@ -184,11 +193,15 @@ export interface CheckIn {
   adherence_ok: boolean
 }
 
+/** AdherenceRule.metric (API). */
+export const ADHERENCE_METRICS = ['training', 'water', 'macros', 'check_in'] as const
+export type AdherenceMetric = (typeof ADHERENCE_METRICS)[number]
+
 export interface AdherenceRule {
   id: string
   name: string
   description: string
-  metric: 'entrenos' | 'comidas' | 'agua' | 'checkins'
+  metric: AdherenceMetric
   target_per_week: number
   enabled: boolean
 }
@@ -199,10 +212,13 @@ export interface WeeklyAdherence {
   raw?: Record<string, unknown>
 }
 
+/** Message.author_role (API). */
+export type MessageAuthorRole = 'coach' | 'alumno' | 'admin'
+
 export interface ChatMessage {
   id: string
   thread_id: string
-  sender: 'coach' | 'alumno'
+  sender: MessageAuthorRole
   body: string
   created_at: string
 }
@@ -222,6 +238,10 @@ export interface StreamTokenResponse {
   stream_path: string
 }
 
+/** Subscription.status (API). */
+export const SUBSCRIPTION_STATUSES = ['active', 'past_due', 'cancelled', 'trial'] as const
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number]
+
 export interface SubscriptionRecord {
   id: string
   student_id: string
@@ -229,7 +249,7 @@ export interface SubscriptionRecord {
   plan_id: string
   plan_name: string
   amount_clp: number
-  status: 'activa' | 'pendiente' | 'cancelada'
+  status: SubscriptionStatus
   started_at: string
   next_billing_at?: string
   note?: string

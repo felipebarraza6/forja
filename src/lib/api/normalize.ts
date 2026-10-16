@@ -1,23 +1,32 @@
 import type {
+  AdherenceMetric,
   AdherenceRule,
   ChatMessage,
   ChatThread,
   CheckIn,
   MacroTargets,
   MealLog,
+  MealType,
+  MessageAuthorRole,
   ServiceBillingPeriod,
   ServiceBillingUi,
   ServicePlan,
   Student,
   StudentStatus,
   SubscriptionRecord,
+  SubscriptionStatus,
   TrainingPlan,
   WaterLog,
   WorkoutDay,
   WorkoutExercise,
   WorkoutLog,
 } from './types'
-import { STUDENT_STATUSES } from './types'
+import {
+  ADHERENCE_METRICS,
+  MEAL_TYPES,
+  STUDENT_STATUSES,
+  SUBSCRIPTION_STATUSES,
+} from './types'
 
 /** IDs de UI siempre string; la API suele devolver number. */
 export function idStr(value: unknown, fallback = ''): string {
@@ -39,10 +48,99 @@ function bool(value: unknown, fallback = false): boolean {
   return Boolean(value)
 }
 
-/** `invitado` y otros valores desconocidos → activo (API no acepta invitado). */
+/** Student.status API: invited|active|paused|finished|cancelled. Acepta aliases ES legacy. */
+const STUDENT_STATUS_ALIASES: Record<string, StudentStatus> = {
+  invited: 'invited',
+  invitado: 'invited',
+  active: 'active',
+  activo: 'active',
+  paused: 'paused',
+  pausado: 'paused',
+  finished: 'finished',
+  finalizado: 'finished',
+  vencido: 'finished',
+  cancelled: 'cancelled',
+  cancelado: 'cancelled',
+  cancelada: 'cancelled',
+}
+
 export function normalizeStudentStatus(value: unknown): StudentStatus {
-  const s = str(value, 'activo')
-  return (STUDENT_STATUSES as readonly string[]).includes(s) ? (s as StudentStatus) : 'activo'
+  const s = str(value, 'invited').toLowerCase()
+  if (STUDENT_STATUS_ALIASES[s]) return STUDENT_STATUS_ALIASES[s]
+  return (STUDENT_STATUSES as readonly string[]).includes(s) ? (s as StudentStatus) : 'invited'
+}
+
+/** Meal.meal_type: breakfast|lunch|dinner|snack|other. */
+const MEAL_ALIASES: Record<string, MealType> = {
+  breakfast: 'breakfast',
+  desayuno: 'breakfast',
+  lunch: 'lunch',
+  almuerzo: 'lunch',
+  dinner: 'dinner',
+  cena: 'dinner',
+  snack: 'snack',
+  once: 'snack',
+  other: 'other',
+  otro: 'other',
+}
+
+export function normalizeMealType(value: unknown): MealType {
+  const s = str(value, 'snack').toLowerCase()
+  if (MEAL_ALIASES[s]) return MEAL_ALIASES[s]
+  return (MEAL_TYPES as readonly string[]).includes(s) ? (s as MealType) : 'other'
+}
+
+/** AdherenceRule.metric: training|water|macros|check_in. */
+const METRIC_ALIASES: Record<string, AdherenceMetric> = {
+  training: 'training',
+  entrenos: 'training',
+  entreno: 'training',
+  water: 'water',
+  agua: 'water',
+  macros: 'macros',
+  comidas: 'macros',
+  check_in: 'check_in',
+  checkin: 'check_in',
+  checkins: 'check_in',
+  'check-in': 'check_in',
+}
+
+export function normalizeAdherenceMetric(value: unknown): AdherenceMetric {
+  const s = str(value, 'training').toLowerCase()
+  if (METRIC_ALIASES[s]) return METRIC_ALIASES[s]
+  return (ADHERENCE_METRICS as readonly string[]).includes(s)
+    ? (s as AdherenceMetric)
+    : 'training'
+}
+
+/** Subscription.status: active|past_due|cancelled|trial. */
+const SUB_STATUS_ALIASES: Record<string, SubscriptionStatus> = {
+  active: 'active',
+  activa: 'active',
+  past_due: 'past_due',
+  past_due_: 'past_due',
+  pendiente: 'past_due',
+  vencida: 'past_due',
+  cancelled: 'cancelled',
+  cancelada: 'cancelled',
+  cancelado: 'cancelled',
+  trial: 'trial',
+  prueba: 'trial',
+}
+
+export function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus {
+  const s = str(value, 'trial').toLowerCase()
+  if (SUB_STATUS_ALIASES[s]) return SUB_STATUS_ALIASES[s]
+  return (SUBSCRIPTION_STATUSES as readonly string[]).includes(s)
+    ? (s as SubscriptionStatus)
+    : 'trial'
+}
+
+export function normalizeAuthorRole(value: unknown): MessageAuthorRole {
+  const s = str(value, 'alumno').toLowerCase()
+  if (s === 'coach' || s === 'trainer') return 'coach'
+  if (s === 'admin') return 'admin'
+  return 'alumno'
 }
 
 /** Macros viven en el alumno (calories_target, protein_target, …). */
@@ -219,7 +317,7 @@ export function normalizeMeal(raw: Record<string, unknown>): MealLog {
     id: idStr(raw.id),
     student_id: idStr(raw.student_id ?? raw.student),
     date: str(raw.logged_on ?? raw.date).slice(0, 10),
-    meal: (str(raw.meal_type ?? raw.meal, 'snack') as MealLog['meal']) || 'snack',
+    meal: normalizeMealType(raw.meal_type ?? raw.meal),
     description: str(raw.description ?? raw.name),
     calories: num(raw.calories ?? raw.kcal),
     protein_g: num(raw.protein ?? raw.protein_g),
@@ -269,7 +367,7 @@ export function normalizeRule(raw: Record<string, unknown>): AdherenceRule {
     id: idStr(raw.id),
     name: str(raw.name),
     description: str(raw.description),
-    metric: (str(raw.metric, 'entrenos') as AdherenceRule['metric']) || 'entrenos',
+    metric: normalizeAdherenceMetric(raw.metric),
     target_per_week: num(raw.target_per_week ?? raw.target, 1),
     enabled: bool(raw.enabled ?? raw.is_active, true),
   }
@@ -291,13 +389,10 @@ export function normalizeThread(raw: Record<string, unknown>): ChatThread {
 }
 
 export function normalizeMessage(raw: Record<string, unknown>): ChatMessage {
-  const senderRaw = str(raw.sender ?? raw.role, 'alumno')
-  const sender: ChatMessage['sender'] =
-    senderRaw === 'coach' || senderRaw === 'trainer' ? 'coach' : 'alumno'
   return {
     id: idStr(raw.id),
     thread_id: idStr(raw.thread_id ?? raw.thread),
-    sender,
+    sender: normalizeAuthorRole(raw.author_role ?? raw.sender ?? raw.role),
     body: str(raw.body ?? raw.text ?? raw.message),
     created_at: str(raw.created_at ?? raw.timestamp ?? new Date().toISOString()),
   }
@@ -321,7 +416,7 @@ export function normalizeSubscription(raw: Record<string, unknown>): Subscriptio
     plan_id: idStr(raw.plan_id ?? raw.service_id ?? plan?.id),
     plan_name: str(raw.plan_name ?? raw.service_name ?? plan?.name),
     amount_clp: num(raw.amount_clp ?? raw.amount ?? raw.price ?? raw.price_clp),
-    status: (str(raw.status, 'pendiente') as SubscriptionRecord['status']) || 'pendiente',
+    status: normalizeSubscriptionStatus(raw.status),
     started_at: str(raw.started_at ?? raw.created_at).slice(0, 10),
     next_billing_at: raw.next_billing_at != null ? str(raw.next_billing_at).slice(0, 10) : undefined,
     note: raw.note != null ? str(raw.note) : undefined,

@@ -15,9 +15,9 @@ export function CoachDashboard() {
   const checkIns = useQuery({ queryKey: ['checkins'], queryFn: () => listCheckIns() })
   const subs = useQuery({ queryKey: ['subs'], queryFn: () => listSubscriptions() })
 
-  const activos = students.data?.filter((s) => s.status === 'activo').length ?? 0
+  const activos = students.data?.filter((s) => s.status === 'active').length ?? 0
   const unread = threads.data?.reduce((acc, t) => acc + t.unread, 0) ?? 0
-  const pendingPay = subs.data?.filter((s) => s.status === 'pendiente').length ?? 0
+  const pendingPay = subs.data?.filter((s) => s.status === 'past_due').length ?? 0
   const avgAdherence = students.data?.length
     ? Math.round(
         students.data.reduce((acc, s) => acc + s.adherence_pct, 0) / students.data.length,
@@ -89,9 +89,9 @@ export function CoachDashboard() {
                   </div>
                   <Badge
                     variant={
-                      s.status === 'activo'
+                      s.status === 'active'
                         ? 'success'
-                        : s.status === 'pausado'
+                        : s.status === 'paused' || s.status === 'invited'
                           ? 'warn'
                           : 'secondary'
                     }

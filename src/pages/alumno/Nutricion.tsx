@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Utensils } from 'lucide-react'
 import { createMeal, listMeals } from '@/lib/api/forja'
+import { MEAL_TYPE_LABELS, mealTypeLabel } from '@/lib/api/labels'
 import { useMyStudent } from '@/hooks/use-my-student'
-import type { MealLog } from '@/lib/api/types'
+import { MEAL_TYPES, type MealLog } from '@/lib/api/types'
 import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,7 +21,7 @@ export function AlumnoNutricion() {
     queryFn: () => listMeals(id),
     enabled: !!id,
   })
-  const [meal, setMeal] = useState<MealLog['meal']>('once')
+  const [meal, setMeal] = useState<MealLog['meal']>('snack')
   const [description, setDescription] = useState('')
   const [calories, setCalories] = useState(300)
   const [protein, setProtein] = useState(20)
@@ -78,9 +79,9 @@ export function AlumnoNutricion() {
             value={meal}
             onChange={(e) => setMeal(e.target.value as MealLog['meal'])}
           >
-            {['desayuno', 'almuerzo', 'once', 'cena', 'snack'].map((m) => (
+            {MEAL_TYPES.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {MEAL_TYPE_LABELS[m]}
               </option>
             ))}
           </select>
@@ -131,7 +132,7 @@ export function AlumnoNutricion() {
           {(meals.data ?? []).map((m) => (
             <li key={m.id} className="surface flex items-start justify-between gap-3 px-4 py-3">
               <div className="min-w-0">
-                <p className="font-medium capitalize">{m.meal}</p>
+                <p className="font-medium">{mealTypeLabel(m.meal)}</p>
                 <p className="text-sm text-text-muted">{m.description}</p>
               </div>
               <p className="shrink-0 tabular text-sm text-text-muted">{m.calories} kcal</p>
