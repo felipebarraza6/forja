@@ -1,5 +1,5 @@
+import { pickForjaBranchId } from './branch'
 import { ApiError, apiRequest, BRANCH_KEY, DEMO_KEY, SESSION_KEY, TOKEN_KEY } from './client'
-import { FORJA_BRANCH_ID } from './config'
 import type { Branch, LoginResponse, Role, User } from './types'
 import { demoLogin } from './demo'
 
@@ -113,8 +113,5 @@ function inferRole(user: User): Role {
 
 /** Prefiere la sucursal Forja (91) si viene en el login; si no, la primera. */
 function pickForjaBranch(branches: Branch[]): number {
-  const forja = branches.find((b) => b.id === FORJA_BRANCH_ID)
-  if (forja) return forja.id
-  if (branches[0]) return branches[0].id
-  return FORJA_BRANCH_ID
+  return pickForjaBranchId(branches)
 }

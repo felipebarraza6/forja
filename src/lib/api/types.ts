@@ -7,8 +7,15 @@ export interface Paginated<T> {
   results: T[]
 }
 
+/**
+ * Membership de login_complete: `id` es el BranchUser (vínculo),
+ * `branch_id` es la sucursal real (p. ej. 91 Forja).
+ */
 export interface Branch {
   id: number
+  /** PK de la sucursal (X-Branch-ID). Preferir sobre `id`. */
+  branch_id?: number
+  branch?: number | { id?: number; name?: string }
   name: string
   commune?: string
   region?: string

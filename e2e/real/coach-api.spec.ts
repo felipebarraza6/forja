@@ -9,10 +9,15 @@
  * ni adherence-rules (requieren admin). Datos creados usan prefijo QA- y
  * se limpian al final cuando la API lo permite.
  *
+ * Corre en serie: login + alumno QA- + hilo QA- en beforeAll comparten
+ * el mismo token (antes cada test partía sin sesión).
+ *
  * No corre en CI por defecto — usar: npm run e2e:real
  */
 import { test, expect } from '@playwright/test'
 import {
+  branchIdsFromLogin,
+  FORJA_BRANCH_NUM,
   hasRealCredentials,
   qa,
   RealApiClient,
@@ -24,38 +29,58 @@ const password = process.env.FORJA_VALIDACION_PASSWORD ?? ''
 
 test.describe('E2E API real — coach validación', () => {
   test.skip(!hasRealCredentials(), 'Definir FORJA_VALIDACION_EMAIL y FORJA_VALIDACION_PASSWORD')
+  test.describe.configure({ mode: 'serial' })
 
-  const api = new RealApiClient()
-  let studentId: string | undefined
-  let threadId: string | undefined
+  let api: RealApiClient
+  let qaStudentId: string
+  let qaThreadId: string
+
+  test.beforeAll(async () => {
+    api = new RealApiClient()
+    const session = await api.login(email, password)
+    expect(api.token, 'login debe devolver token').toBeTruthy()
+
+    const role = session.forja_role ?? session.user?.forja_role
+    expect(
+      role === 'coach' || role === 'admin' || role == null,
+      `forja_role inesperado: ${String(role)}`,
+    ).toBe(true)
+
+    // `branches[].id` es BranchUser (p. ej. 230); la sucursal es branch_id (91).
+    const branchIds = branchIdsFromLogin(session.branches)
+    if (branchIds.length) {
+      expect(
+        branchIds,
+        `Se esperaba branch_id ${FORJA_BRANCH_NUM} en branches[]; memberships: ${JSON.stringify(session.branches)}`,
+      ).toContain(FORJA_BRANCH_NUM)
+    }
+
+    const stamp = Date.now()
+    // Si el coach no puede crear alumnos, createQaStudent lanza con mensaje claro
+    // y toda la suite falla aquí (no se enmascaran los tests siguientes).
+    const student = await api.createQaStudent(stamp)
+    expect(student.full_name).toContain(QA_PREFIX)
+    qaStudentId = student.id
+
+    qaThreadId = await api.createQaThread(qaStudentId)
+    expect(qaThreadId).toBeTruthy()
+  })
 
   test.afterAll(async () => {
-    if (!hasRealCredentials() || !api.token) return
+    if (!api?.token) return
     const errors = await api.cleanup()
     if (errors.length) {
       console.warn('[e2e:real] Limpieza parcial:', errors.join('; '))
     }
   })
 
-  test('login coach en branch 91', async () => {
-    const session = await api.login(email, password)
-    expect(api.token).toBeTruthy()
-    expect(session.forja_role === 'coach' || session.forja_role === 'admin' || !session.forja_role).toBe(
-      true,
-    )
-    const branchIds = (session.branches ?? []).map((b) => b.id)
-    // Preferimos 91; si el login no lista branches, igual enviamos X-Branch-ID 91
-    if (branchIds.length) {
-      expect(branchIds).toContain(91)
-    }
-  })
-
   test('lectura: students, services, subscriptions, adherence, threads', async () => {
     const students = await api.list<Record<string, unknown>>('forja/students/')
     expect(Array.isArray(students)).toBe(true)
-    if (students[0]) {
-      studentId = String(students[0].id)
-    }
+    expect(
+      students.some((s) => String(s.id) === qaStudentId),
+      'el alumno QA- creado en setup debe aparecer en el listado',
+    ).toBe(true)
 
     const services = await api.list<Record<string, unknown>>('forja/services/')
     expect(Array.isArray(services)).toBe(true)
@@ -68,42 +93,46 @@ test.describe('E2E API real — coach validación', () => {
 
     const threads = await api.list<Record<string, unknown>>('forja/threads/')
     expect(Array.isArray(threads)).toBe(true)
-    if (threads[0]) {
-      threadId = String(threads[0].id)
-    }
+    expect(
+      threads.some((t) => String(t.id) === qaThreadId),
+      'el hilo QA- creado en setup debe aparecer en el listado',
+    ).toBe(true)
   })
 
   test('lectura filtrada: training-plan / meals / water / workout-logs / check-ins', async () => {
-    test.skip(!studentId, 'Sin alumnos en la sucursal para filtrar')
-
-    const plan = await api.request(`forja/training-plan/?student=${studentId}`)
+    const plan = await api.request(
+      `forja/training-plan/?student=${qaStudentId}&is_current=true&page_size=1`,
+    )
+    // Alumno nuevo puede no tener plan: 200 vacío o 404 aceptables
     expect(plan.ok || plan.status === 404).toBe(true)
 
     for (const resource of ['meals', 'water', 'workout-logs', 'check-ins'] as const) {
-      const res = await api.request(`forja/${resource}/?student=${studentId}`)
-      expect(res.ok, `${resource} debería existir (401/404 no esperados): ${res.ok ? '' : (res as { detail: string }).detail}`).toBe(
-        true,
-      )
+      const res = await api.request(`forja/${resource}/?student=${qaStudentId}`)
+      expect(
+        res.ok,
+        `${resource}?student=${qaStudentId} → ${res.ok ? 'ok' : `${(res as { status: number }).status} ${(res as { detail: string }).detail}`}`,
+      ).toBe(true)
     }
   })
 
   test('escritura coach: suscripción manual con prefijo QA-', async () => {
-    test.skip(!studentId, 'Sin alumnos para asociar suscripción')
-
     const services = await api.list<Record<string, unknown>>('forja/services/')
     const plan = services[0]
-    test.skip(!plan, 'Sin services legibles (posible restricción de rol)')
+    test.skip(!plan, 'Sin services legibles (posible restricción de rol / catálogo vacío)')
 
     const planId = plan.id
     const note = qa(`sub-${Date.now()}`)
+    const amount = Number(plan.price_clp ?? plan.price ?? 0) || 1000
     const res = await api.request<Record<string, unknown>>('forja/subscriptions/', {
       method: 'POST',
       body: {
-        student: studentId,
-        student_id: studentId,
+        student: qaStudentId,
+        student_id: qaStudentId,
         plan: planId,
         plan_id: planId,
-        amount_clp: Number(plan.price_clp ?? 0) || 1000,
+        service: planId,
+        amount_clp: amount,
+        amount,
         status: 'pendiente',
         started_at: new Date().toISOString().slice(0, 10),
         note,
@@ -112,20 +141,20 @@ test.describe('E2E API real — coach validación', () => {
 
     expect(res.ok, res.ok ? '' : res.detail).toBe(true)
     if (res.ok) {
-      const id = res.data.id
-      api.track('subscription', id as string | number)
+      api.track('subscription', res.data.id as string | number)
       expect(String(res.data.note ?? note)).toContain(QA_PREFIX)
     }
   })
 
-  test('escritura coach: mensaje QA- en hilo existente', async () => {
-    test.skip(!threadId, 'Sin hilos de chat para enviar mensaje')
-
+  test('escritura coach: mensaje QA- en hilo del alumno QA-', async () => {
     const body = qa(`msg-${Date.now()}`)
-    const res = await api.request<Record<string, unknown>>(`forja/threads/${threadId}/messages/`, {
-      method: 'POST',
-      body: { body, text: body, message: body },
-    })
+    const res = await api.request<Record<string, unknown>>(
+      `forja/threads/${qaThreadId}/messages/`,
+      {
+        method: 'POST',
+        body: { body, text: body, message: body },
+      },
+    )
     expect(res.ok, res.ok ? '' : res.detail).toBe(true)
     if (res.ok) {
       api.track('message', res.data.id as string | number)
@@ -140,12 +169,13 @@ test.describe('E2E API real — coach validación', () => {
         name: qa('service-no-crear'),
         description: 'No debe persistir — coach no es admin',
         price_clp: 1000,
+        price: 1000,
         billing: 'mensual',
+        billing_period: 'monthly',
         active: true,
         features: ['QA'],
       },
     })
-    // Esperado: 403/401/405. Si por error crea, trackeamos para cleanup.
     if (res.ok) {
       const id = (res.data as { id?: string | number }).id
       api.track('service', id)
@@ -173,31 +203,5 @@ test.describe('E2E API real — coach validación', () => {
     } else {
       expect([401, 403, 405, 404]).toContain(res.status)
     }
-  })
-
-  test('alta opcional de alumno QA- (si el contrato lo permite)', async () => {
-    const stamp = Date.now()
-    const res = await api.request<Record<string, unknown>>('forja/students/', {
-      method: 'POST',
-      body: {
-        email: `qa.forja.${stamp}@example.com`,
-        full_name: qa(`Alumno ${stamp}`),
-        goals: qa('objetivo-validacion'),
-        status: 'invitado',
-      },
-    })
-
-    if (!res.ok) {
-      // Contrato aún puede no exponer POST a coaches — documentado, no falla la suite
-      test.info().annotations.push({
-        type: 'note',
-        description: `POST students/ no disponible (${res.status}): ${res.detail}`,
-      })
-      return
-    }
-
-    const id = res.data.id
-    api.track('student', id as string | number)
-    expect(String(res.data.full_name ?? '')).toContain(QA_PREFIX)
   })
 })
