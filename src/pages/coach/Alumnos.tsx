@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { Users } from 'lucide-react'
 import { listStudents } from '@/lib/api/forja'
+import { studentStatusBadgeVariant, studentStatusLabel } from '@/lib/api/labels'
 import { EmptyState } from '@/components/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { PageSkeleton } from '@/components/ui/skeleton'
@@ -46,16 +47,8 @@ export function CoachAlumnos() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{s.plan_name}</Badge>
-                    <Badge
-                      variant={
-                        s.status === 'activo'
-                          ? 'success'
-                          : s.status === 'pausado'
-                            ? 'warn'
-                            : 'outline'
-                      }
-                    >
-                      {s.status}
+                    <Badge variant={studentStatusBadgeVariant(s.status)}>
+                      {studentStatusLabel(s.status)}
                     </Badge>
                     <span className="tabular text-sm font-semibold">{s.adherence_pct}%</span>
                   </div>

@@ -116,11 +116,27 @@ No usar `Authorization` en EventSource; el token de stream es de corta vida.
 | `patchStudentMacros` / `patchStudentStatus` / adherence weekly | Cliente listo; UI de edición pendiente |
 | Regenerar tipos desde OpenAPI público | Bloqueado (404); usar `yggdra_infra` |
 
+### Enums canónicos (modelo `api/apps/forja/models/core.py`)
+
+Valores **en inglés** en API/filtros/payloads; la UI muestra etiquetas en español (`src/lib/api/labels.ts`).
+
+| Campo | Valores |
+|-------|---------|
+| `Student.status` | `invited` \| `active` \| `paused` \| `finished` \| `cancelled` (default `invited`) |
+| `Subscription.status` | `active` \| `past_due` \| `cancelled` \| `trial` |
+| `Service.billing_period` | `monthly` \| `quarterly` \| `yearly` \| `one_time` |
+| `Meal.meal_type` | `breakfast` \| `lunch` \| `dinner` \| `snack` \| `other` |
+| `AdherenceRule.metric` | `training` \| `water` \| `macros` \| `check_in` |
+| `Message.author_role` | `coach` \| `alumno` \| `admin` |
+
+`normalize*` acepta aliases ES legacy (p. ej. `activo` → `active`) al leer respuestas antiguas.
+
 ## Pendiente / seguimiento
 
 1. Publicar de nuevo OpenAPI en `GET /api/schema/?format=json` (o documentar URL) para codegen.
 2. Usuario coach (y opcional admin) en branch **91** para E2E reales (no crear desde el front).
 3. Confirmar shape exacto de `adherence/weekly/` y de POST `subscriptions` (campos `amount_*` vs `price`).
 4. Actualizar `docs/backend-needs.md` (aún describe rutas anidadas obsoletas) en un follow-up.
+5. Confirmar enum canónico de `students.status` en OpenAPI de `yggdra_infra` (front ya dejó de enviar `invitado`).
 
 CORS staging (`https://felipebarraza6.github.io`) OK.

@@ -45,7 +45,7 @@ npm run e2e:real
 
 Si las variables no están definidas, las pruebas se omiten (skip). El usuario debe ser el **coach de validación** (no admin: crear `services/` y escribir `adherence-rules` requiere admin).
 
-La suite corre en **serie**: login una vez, crea un alumno `QA-` y su hilo en el setup, ejercita lecturas filtradas / suscripción / mensajes, y al final borra o desactiva esos datos. En `login_complete`, la sucursal es `branches[].branch_id` (91), no `branches[].id` (ese es el BranchUser). Si el coach no puede crear alumnos, el setup falla con un mensaje explícito.
+La suite corre en **serie**: login una vez, crea un alumno `QA-` (`status: invited`) y su hilo en el setup, ejercita lecturas filtradas / suscripción / mensajes, y al final borra o desactiva esos datos. En `login_complete`, la sucursal es `branches[].branch_id` (91), no `branches[].id` (ese es el BranchUser). Enums de API en inglés (`active`, `past_due`, `breakfast`, …); la UI muestra etiquetas en español. Si el coach no puede crear alumnos, el setup falla con un mensaje explícito.
 
 ## Roles MVP
 

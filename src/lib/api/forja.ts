@@ -401,7 +401,7 @@ export async function listMessages(threadId: string): Promise<ChatMessage[]> {
 export async function sendMessage(
   threadId: string,
   body: string,
-  sender: 'coach' | 'alumno',
+  sender: 'coach' | 'alumno' | 'admin',
 ): Promise<ChatMessage> {
   const { data } = await withDemoFallback(
     async () => {
@@ -409,12 +409,12 @@ export async function sendMessage(
         `${PREFIX}/threads/${threadId}/messages/`,
         {
           method: 'POST',
-          body: { body },
+          body: { body, author_role: sender, sender },
         },
       )
       return normalizeMessage(asRecord(raw))
     },
-    () => pushMessage(threadId, sender, body),
+    () => pushMessage(threadId, sender === 'admin' ? 'coach' : sender, body),
   )
   return data
 }

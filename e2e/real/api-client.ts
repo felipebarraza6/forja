@@ -125,7 +125,8 @@ export class RealApiClient {
         email: `qa.forja.${stamp}@example.com`,
         full_name,
         goals: qa('objetivo-validacion'),
-        status: 'invitado',
+        // Student.status API (EN): invited | active | paused | finished | cancelled
+        status: 'invited',
       },
     })
     if (!res.ok) {
@@ -178,7 +179,7 @@ export class RealApiClient {
       if (item.kind === 'subscription') {
         const patch = await this.request(`forja/subscriptions/${item.id}/`, {
           method: 'PATCH',
-          body: { status: 'cancelada', note: `${QA_PREFIX}cleanup` },
+          body: { status: 'cancelled', note: `${QA_PREFIX}cleanup` },
         })
         if (!patch.ok && patch.status !== 404) {
           errors.push(`${item.kind}/${item.id}: ${res.status}/${patch.status}`)
@@ -190,13 +191,13 @@ export class RealApiClient {
         // Preferir endpoint de status si existe; si no, PATCH genérico
         const statusPatch = await this.request(`forja/students/${item.id}/status/`, {
           method: 'PATCH',
-          body: { status: 'pausado' },
+          body: { status: 'cancelled' },
         })
         if (statusPatch.ok || statusPatch.status === 404) {
           if (!statusPatch.ok) {
             const patch = await this.request(`forja/students/${item.id}/`, {
               method: 'PATCH',
-              body: { status: 'pausado', goals: `${QA_PREFIX}cleanup` },
+              body: { status: 'cancelled', goals: `${QA_PREFIX}cleanup` },
             })
             if (!patch.ok && patch.status !== 404) {
               errors.push(`${item.kind}/${item.id}: ${res.status}/${patch.status}`)

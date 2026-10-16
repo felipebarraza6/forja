@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardCheck } from 'lucide-react'
 import { listAdherenceRules, toggleAdherenceRule } from '@/lib/api/forja'
+import { adherenceMetricLabel } from '@/lib/api/labels'
 import { EmptyState } from '@/components/empty-state'
 import { PageSkeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
@@ -46,7 +47,7 @@ export function CoachAdherencia() {
                 <p className="font-medium">{rule.name}</p>
                 <p className="mt-1 text-sm leading-relaxed text-text-muted">{rule.description}</p>
                 <p className="mt-2 text-xs text-text-faint">
-                  Meta: {rule.target_per_week}/{rule.metric} por semana
+                  Meta: {rule.target_per_week}/{adherenceMetricLabel(rule.metric)} por semana
                 </p>
               </div>
               <Switch
