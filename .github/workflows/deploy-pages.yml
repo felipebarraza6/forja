@@ -51,6 +51,8 @@ jobs:
         run: npm run build
 
       - name: Publicar dist en la raíz de main (Pages legacy)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           # Restaurar plantilla de desarrollo en el árbol de trabajo no es
