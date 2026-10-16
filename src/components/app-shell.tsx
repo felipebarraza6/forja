@@ -75,7 +75,7 @@ export function AppShell() {
       </header>
 
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 md:grid-cols-[200px_1fr]">
-        <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+        <nav aria-label="Principal" className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
           {links.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}

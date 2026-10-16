@@ -24,7 +24,8 @@ export async function loginComplete(
       auth: 'none',
       branch: 'none',
     })
-    const role = res.forja_role ?? preferredRole ?? inferRole(res.user)
+    const apiRole = res.forja_role ?? res.user?.forja_role ?? null
+    const role = apiRole ?? preferredRole ?? inferRole(res.user)
     const branches = res.branches ?? []
     const branchId = pickForjaBranch(branches)
     localStorage.removeItem(DEMO_KEY)

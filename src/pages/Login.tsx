@@ -87,12 +87,13 @@ export function Login() {
             contraseña». El modo demo es solo respaldo offline.
           </p>
 
-          <div className="mt-6 flex gap-2">
+          <div className="mt-6 flex gap-2" role="group" aria-label="Rol preferido">
             {(['coach', 'alumno'] as const).map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
+                aria-pressed={role === r}
                 className={cn(
                   'rounded-md border px-3 py-1.5 text-sm capitalize transition-colors',
                   role === r

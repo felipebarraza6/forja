@@ -87,6 +87,12 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
       } catch {
         /* ignore */
       }
+      // Token inválido/expirado: limpiar sesión local (no en login sin auth).
+      if (res.status === 401 && auth !== 'none') {
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem(SESSION_KEY)
+        localStorage.removeItem(DEMO_KEY)
+      }
       throw new ApiError(detail, res.status)
     }
 

@@ -40,7 +40,14 @@ export function AlumnoAgua() {
           {total.toLocaleString('es-CL')}
           <span className="text-lg font-normal text-text-faint"> ml</span>
         </p>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-bg-sunken">
+        <div
+          className="mt-4 h-2 overflow-hidden rounded-full bg-bg-sunken"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Progreso de hidratación del día"
+        >
           <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-sm text-text-muted">{pct}% de la meta</p>
