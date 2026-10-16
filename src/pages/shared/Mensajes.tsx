@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { MessageSquare } from 'lucide-react'
 import {
   listMessages,
   listThreads,
   sendMessage,
   subscribeThreadEvents,
 } from '@/lib/api/forja'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { PageSkeleton } from '@/components/ui/skeleton'
 import { useSession } from '@/lib/session'
 import { cn, formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -24,7 +27,6 @@ export function Mensajes() {
   const selected = useMemo(() => {
     const list = threads.data ?? []
     if (session.role === 'alumno') {
-      // Al alumno la API suele devolver solo su hilo
       return list[0] ?? null
     }
     return list.find((t) => t.id === activeId) ?? list[0] ?? null
@@ -53,12 +55,33 @@ export function Mensajes() {
     onError: (e: Error) => toast.error(e.message),
   })
 
+  if (threads.isLoading) return <PageSkeleton rows={3} />
+
+  if ((threads.data ?? []).length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="eyebrow">Comunicación</p>
+          <h1 className="font-display mt-1 text-3xl font-bold tracking-tight">Mensajes</h1>
+          <p className="mt-2 text-text-muted">
+            Chat coach–alumno con eventos SSE cuando el backend esté disponible.
+          </p>
+        </div>
+        <EmptyState
+          icon={MessageSquare}
+          title="Sin conversaciones"
+          description="Cuando haya hilos activos entre coach y alumno aparecerán aquí."
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <p className="eyebrow">Comunicación</p>
         <h1 className="font-display mt-1 text-3xl font-bold tracking-tight">Mensajes</h1>
-        <p className="mt-2 text-text-muted">
+        <p className="mt-2 max-w-2xl text-text-muted">
           Chat coach–alumno con eventos SSE cuando el backend esté disponible.
         </p>
       </div>
@@ -72,7 +95,7 @@ export function Mensajes() {
                   type="button"
                   onClick={() => setActiveId(t.id)}
                   className={cn(
-                    'flex w-full flex-col items-start gap-1 px-3 py-3 text-left transition-colors hover:bg-bg-sunken/70',
+                    'flex w-full flex-col items-start gap-1 px-3 py-3 text-left transition-colors duration-200 hover:bg-bg-sunken/70',
                     selected?.id === t.id && 'bg-bg-sunken',
                   )}
                 >
@@ -98,29 +121,35 @@ export function Mensajes() {
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto p-4">
-            {(messages.data ?? []).map((m) => (
-              <div
-                key={m.id}
-                className={cn(
-                  'max-w-[85%] rounded-lg px-3 py-2 text-sm',
-                  m.sender === sender
-                    ? 'ml-auto bg-accent/15 text-text'
-                    : 'bg-bg-sunken text-text-muted',
-                )}
-              >
-                <p>{m.body}</p>
-                <p className="mt-1 text-[10px] text-text-faint">
-                  {new Date(m.created_at).toLocaleTimeString('es-CL', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              </div>
-            ))}
+            {(messages.data ?? []).length === 0 ? (
+              <p className="py-8 text-center text-sm text-text-faint">
+                Escribe el primer mensaje de este hilo.
+              </p>
+            ) : (
+              (messages.data ?? []).map((m) => (
+                <div
+                  key={m.id}
+                  className={cn(
+                    'max-w-[85%] rounded-lg px-3 py-2 text-sm transition-opacity duration-200',
+                    m.sender === sender
+                      ? 'ml-auto bg-accent/15 text-text'
+                      : 'bg-bg-sunken text-text-muted',
+                  )}
+                >
+                  <p>{m.body}</p>
+                  <p className="mt-1 text-[10px] text-text-faint">
+                    {new Date(m.created_at).toLocaleTimeString('es-CL', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
 
           <form
-            className="flex gap-2 border-t border-border p-3"
+            className="flex flex-col gap-2 border-t border-border p-3 sm:flex-row"
             onSubmit={(e) => {
               e.preventDefault()
               if (!body.trim() || !selected) return
@@ -131,10 +160,14 @@ export function Mensajes() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Escribe un mensaje…"
-              className="min-h-[44px] resize-none"
+              className="min-h-[44px] flex-1 resize-none"
               rows={2}
             />
-            <Button type="submit" disabled={!body.trim() || send.isPending}>
+            <Button
+              type="submit"
+              disabled={!body.trim() || send.isPending}
+              className="sm:self-end"
+            >
               Enviar
             </Button>
           </form>
