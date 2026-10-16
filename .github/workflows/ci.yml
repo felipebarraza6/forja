@@ -26,14 +26,35 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Tests
+      - name: Tests (unit + integración contrato)
         run: npm test
 
       - name: Build
         run: npm run build
+
+      - name: E2E Playwright (modo demo)
+        run: npm run e2e
+
+      - name: Informe de validación (PDF)
+        run: npm run report:validation
+
+      - name: Subir artifacts de validación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forja-validacion
+          path: |
+            docs/informe-validacion.pdf
+            docs/validation-screenshots/
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
