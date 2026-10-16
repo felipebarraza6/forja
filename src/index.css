@@ -4,38 +4,49 @@
 
 @layer base {
   :root {
-    --bg: #f2f5f8;
+    /* Nórdico frío: hielo, acero, blancos tenues — contraste AA */
+    --bg: #f3f6f9;
     --bg-raised: #ffffff;
-    --bg-sunken: #e8eef3;
-    --border: #d5dde6;
-    --border-strong: #b7c3d0;
-    --text: #15202b;
-    --text-muted: #5b6b7c;
-    --text-faint: #8493a3;
-    --accent: #4d6b82;
-    --accent-fg: #f7fafc;
-    --accent-dim: #4d6b8222;
-    --warn: #b8893d;
-    --danger: #b45a4c;
-    --success: #3f7d68;
+    --bg-sunken: #e4ebf2;
+    --border: #c8d3de;
+    --border-strong: #8fa0b2;
+    --text: #0e1a26;
+    --text-muted: #3d4f61;
+    --text-faint: #66798b;
+    --accent: #2a5470;
+    --accent-fg: #f5f9fc;
+    --accent-dim: #2a54701f;
+    --ice: #9ec0d6;
+    --steel: #5a7a92;
+    --warn: #a67a2e;
+    --danger: #a64d42;
+    --success: #2f6b58;
     --radius: 0.625rem;
+    --mark-bg: #1a2a38;
+    --mark-ink: #c8d8e6;
+    --mark-node: #7eb0d0;
   }
 
   .dark {
-    --bg: #0d1116;
-    --bg-raised: #151b22;
-    --bg-sunken: #090c10;
-    --border: #273140;
-    --border-strong: #3a4a5c;
-    --text: #e8eef4;
-    --text-muted: #9aa8b8;
-    --text-faint: #6d7c8d;
-    --accent: #8fa9bd;
-    --accent-fg: #0d1116;
-    --accent-dim: #8fa9bd33;
+    --bg: #0a1016;
+    --bg-raised: #121a23;
+    --bg-sunken: #070b10;
+    --border: #243241;
+    --border-strong: #3a4f63;
+    --text: #e6eef5;
+    --text-muted: #9aabc0;
+    --text-faint: #6d8094;
+    --accent: #7eabc6;
+    --accent-fg: #0a1016;
+    --accent-dim: #7eabc633;
+    --ice: #4a6f88;
+    --steel: #8aa6bb;
     --warn: #d4a45c;
     --danger: #d07a6c;
     --success: #6fa892;
+    --mark-bg: #0e1620;
+    --mark-ink: #c8d8e6;
+    --mark-node: #7eb0d0;
   }
 
   * {
@@ -46,14 +57,29 @@
     scroll-behavior: smooth;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   body {
     @apply bg-bg text-text antialiased;
-    font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
+    font-family: Sora, ui-sans-serif, system-ui, sans-serif;
     min-height: 100dvh;
+    background-color: var(--bg);
     background-image:
-      radial-gradient(ellipse 80% 50% at 10% -10%, var(--accent-dim), transparent 55%),
-      radial-gradient(ellipse 60% 40% at 100% 0%, color-mix(in srgb, var(--success) 12%, transparent), transparent 50%),
-      linear-gradient(180deg, var(--bg), var(--bg-sunken));
+      radial-gradient(ellipse 90% 55% at 8% -8%, color-mix(in srgb, var(--ice) 28%, transparent), transparent 58%),
+      radial-gradient(ellipse 55% 40% at 100% 0%, var(--accent-dim), transparent 52%),
+      linear-gradient(165deg, var(--bg) 0%, var(--bg-sunken) 100%);
     background-attachment: fixed;
   }
 
@@ -78,6 +104,32 @@
 
   .surface {
     @apply rounded-xl border border-border backdrop-blur-sm;
-    background-color: color-mix(in srgb, var(--bg-raised) 92%, transparent);
+    background-color: color-mix(in srgb, var(--bg-raised) 94%, transparent);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 55%, transparent);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .surface-interactive:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--text) 6%, transparent);
+  }
+
+  .nordic-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--border) 45%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--border) 45%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  .frost-panel {
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--bg-raised) 88%, var(--ice)) 0%,
+        color-mix(in srgb, var(--bg-sunken) 70%, transparent) 100%
+      );
   }
 }

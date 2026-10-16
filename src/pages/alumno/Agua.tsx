@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Droplets } from 'lucide-react'
 import { listWater, logWater } from '@/lib/api/forja'
 import { useMyStudent } from '@/hooks/use-my-student'
+import { PageSkeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -27,6 +29,8 @@ export function AlumnoAgua() {
   const target = studentQ.data?.macros.water_ml ?? 2800
   const pct = Math.min(100, Math.round((total / target) * 100))
 
+  if (studentQ.isLoading) return <PageSkeleton rows={2} />
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,23 +39,32 @@ export function AlumnoAgua() {
         <p className="mt-2 text-text-muted">Meta del día: {target.toLocaleString('es-CL')} ml</p>
       </div>
 
-      <div className="surface p-6">
-        <p className="font-display text-4xl font-semibold tabular">
+      <div className="surface p-6 sm:p-8">
+        <div className="mb-5 flex items-center gap-3 text-accent">
+          <div className="flex size-10 items-center justify-center rounded-full bg-accent-dim">
+            <Droplets className="size-5" strokeWidth={1.75} aria-hidden />
+          </div>
+          <p className="text-sm text-text-muted">Progreso de hoy</p>
+        </div>
+        <p className="font-display text-4xl font-semibold tabular sm:text-5xl">
           {total.toLocaleString('es-CL')}
           <span className="text-lg font-normal text-text-faint"> ml</span>
         </p>
         <div
-          className="mt-4 h-2 overflow-hidden rounded-full bg-bg-sunken"
+          className="mt-5 h-2.5 overflow-hidden rounded-full bg-bg-sunken"
           role="progressbar"
           aria-valuenow={pct}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label="Progreso de hidratación del día"
+          aria-label="Progreso de hidratación"
         >
-          <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
+          <div
+            className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            style={{ width: `${pct}%` }}
+          />
         </div>
         <p className="mt-2 text-sm text-text-muted">{pct}% de la meta</p>
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap gap-2">
           {[250, 500, 750].map((ml) => (
             <Button
               key={ml}

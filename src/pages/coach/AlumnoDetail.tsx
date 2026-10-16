@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
+import { ArrowLeft, UserRound } from 'lucide-react'
 import {
   getStudent,
   getTrainingPlan,
@@ -7,8 +8,10 @@ import {
   listMeals,
   listWorkoutLogs,
 } from '@/lib/api/forja'
+import { EmptyState } from '@/components/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { PageSkeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/utils'
 
@@ -20,15 +23,19 @@ export function CoachAlumnoDetail() {
   const workouts = useQuery({ queryKey: ['workouts', id], queryFn: () => listWorkoutLogs(id) })
   const checkIns = useQuery({ queryKey: ['checkins', id], queryFn: () => listCheckIns(id) })
 
-  if (student.isLoading) return <p className="text-text-muted">Cargando alumno…</p>
+  if (student.isLoading) return <PageSkeleton />
   if (!student.data) {
     return (
-      <div>
-        <p>No se encontró el alumno.</p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link to="/coach/alumnos">Volver</Link>
-        </Button>
-      </div>
+      <EmptyState
+        icon={UserRound}
+        title="No se encontró el alumno"
+        description="Puede que el enlace sea incorrecto o ya no esté disponible."
+        action={
+          <Button asChild variant="outline">
+            <Link to="/coach/alumnos">Volver a alumnos</Link>
+          </Button>
+        }
+      />
     )
   }
 
@@ -38,16 +45,19 @@ export function CoachAlumnoDetail() {
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
-          <Link to="/coach/alumnos">← Alumnos</Link>
+          <Link to="/coach/alumnos">
+            <ArrowLeft className="size-4" strokeWidth={1.75} />
+            Alumnos
+          </Link>
         </Button>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <h1 className="font-display text-3xl font-bold tracking-tight">{s.full_name}</h1>
             <p className="mt-1 text-text-muted">
               {s.email} · {s.plan_name}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Badge variant="success">{s.adherence_pct}% adherencia</Badge>
             <Badge variant="secondary">{s.status}</Badge>
           </div>
@@ -55,7 +65,7 @@ export function CoachAlumnoDetail() {
         <p className="mt-3 text-sm text-text-muted">Objetivo: {s.goals}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ['Calorías', s.macros.calories],
           ['Proteína', `${s.macros.protein_g} g`],
@@ -102,17 +112,21 @@ export function CoachAlumnoDetail() {
               </div>
               <div>
                 <h3 className="mb-2 text-sm font-medium text-text-muted">Registros recientes</h3>
-                <ul className="space-y-2">
-                  {(workouts.data ?? []).map((w) => (
-                    <li key={w.id} className="flex justify-between text-sm">
-                      <span>
-                        {w.title}
-                        {w.notes ? ` — ${w.notes}` : ''}
-                      </span>
-                      <span className="text-text-faint">{formatDate(w.date)}</span>
-                    </li>
-                  ))}
-                </ul>
+                {(workouts.data ?? []).length === 0 ? (
+                  <p className="text-sm text-text-faint">Sin entrenos registrados.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {(workouts.data ?? []).map((w) => (
+                      <li key={w.id} className="flex justify-between gap-3 text-sm">
+                        <span className="min-w-0 truncate">
+                          {w.title}
+                          {w.notes ? ` — ${w.notes}` : ''}
+                        </span>
+                        <span className="shrink-0 text-text-faint">{formatDate(w.date)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </>
           ) : (
@@ -124,11 +138,11 @@ export function CoachAlumnoDetail() {
           <ul className="space-y-3">
             {(meals.data ?? []).map((m) => (
               <li key={m.id} className="surface flex items-start justify-between gap-3 p-4">
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium capitalize">{m.meal}</p>
                   <p className="text-sm text-text-muted">{m.description}</p>
                 </div>
-                <div className="text-right text-sm tabular text-text-muted">
+                <div className="shrink-0 text-right text-sm tabular text-text-muted">
                   <p>{m.calories} kcal</p>
                   <p className="text-xs">
                     P{m.protein_g} C{m.carbs_g} G{m.fat_g}
@@ -144,7 +158,7 @@ export function CoachAlumnoDetail() {
           <ul className="space-y-3">
             {(checkIns.data ?? []).map((c) => (
               <li key={c.id} className="surface p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <p className="font-medium">{formatDate(c.date)}</p>
                   <Badge variant={c.adherence_ok ? 'success' : 'warn'}>
                     {c.adherence_ok ? 'ok' : 'revisar'}
@@ -158,6 +172,9 @@ export function CoachAlumnoDetail() {
                 {c.notes && <p className="mt-1 text-sm">{c.notes}</p>}
               </li>
             ))}
+            {!checkIns.data?.length && (
+              <p className="text-text-muted">Sin check-ins registrados.</p>
+            )}
           </ul>
         </TabsContent>
       </Tabs>
