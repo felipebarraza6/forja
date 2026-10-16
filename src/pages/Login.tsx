@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { motion } from 'framer-motion'
+import { BrandMark, ForjaMark } from '@/components/brand-logo'
+import { PageMotion } from '@/components/page-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,53 +49,53 @@ export function Login() {
 
   return (
     <div className="grid min-h-dvh md:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-bg-sunken md:block">
+      <div className="relative hidden overflow-hidden frost-panel md:block">
         <div
-          className="absolute inset-0"
+          aria-hidden
+          className="absolute inset-0 nordic-grid opacity-40"
           style={{
-            backgroundImage:
-              'radial-gradient(circle at 30% 20%, var(--accent-dim), transparent 45%), linear-gradient(160deg, var(--bg-sunken), var(--bg))',
+            maskImage: 'linear-gradient(180deg, black, transparent 85%)',
           }}
         />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-10 -left-10 opacity-[0.12]"
+        >
+          <ForjaMark className="size-[320px]" />
+        </div>
         <div className="relative flex h-full flex-col justify-between p-10">
-          <Link to="/" className="font-display text-2xl font-bold">
-            Forja
-          </Link>
-          <motion.p
-            className="max-w-sm text-lg text-text-muted"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            El estudio digital del coach: alumnos, planes y adherencia con la misma API Yggdra que
-            el resto del ecosistema.
-          </motion.p>
+          <BrandMark size="lg" />
+          <PageMotion>
+            <p className="max-w-sm text-lg leading-relaxed text-text-muted">
+              El estudio digital del coach: alumnos, planes y adherencia con la misma API Yggdra que
+              el resto del ecosistema.
+            </p>
+          </PageMotion>
         </div>
       </div>
 
       <div className="flex flex-col">
         <div className="flex items-center justify-between px-4 py-4 md:justify-end">
-          <Link to="/" className="font-display text-lg font-bold md:hidden">
-            Forja
-          </Link>
+          <BrandMark className="md:hidden" size="sm" />
           <ThemeToggle />
         </div>
 
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-12">
+        <PageMotion className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-12">
           <h1 className="font-display text-3xl font-bold tracking-tight">Entrar</h1>
-          <p className="mt-2 text-sm text-text-muted">
+          <p className="mt-2 text-sm leading-relaxed text-text-muted">
             Cuenta Yggdra (org Forja, sucursal 91). Los alumnos recién creados entran con «olvidé mi
             contraseña». El modo demo es solo respaldo offline.
           </p>
 
-          <div className="mt-6 flex gap-2">
+          <div className="mt-6 flex gap-2" role="group" aria-label="Rol">
             {(['coach', 'alumno'] as const).map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
+                aria-pressed={role === r}
                 className={cn(
-                  'rounded-md border px-3 py-1.5 text-sm capitalize transition-colors',
+                  'rounded-md border px-3 py-1.5 text-sm capitalize transition-[background-color,border-color,color] duration-200',
                   role === r
                     ? 'border-accent bg-accent/10 text-text'
                     : 'border-border text-text-muted hover:bg-bg-sunken',
@@ -128,7 +129,11 @@ export function Login() {
                 required
               />
             </div>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && (
+              <p className="text-sm text-danger" role="alert">
+                {error}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Entrando…' : 'Continuar'}
             </Button>
@@ -142,7 +147,13 @@ export function Login() {
               Demo alumno
             </Button>
           </div>
-        </div>
+
+          <p className="mt-8 text-center text-xs text-text-faint md:hidden">
+            <Link to="/" className="underline-offset-2 hover:underline">
+              Volver al inicio
+            </Link>
+          </p>
+        </PageMotion>
       </div>
     </div>
   )

@@ -1,72 +1,126 @@
-# Diferencias de contrato Forja ↔ front (para Yggdra)
+# Contrato Forja ↔ front (confirmado por Yggdra)
 
 Fecha: 2026-10-16 · API base: `https://api.yggdra.cl/api` · Branch: `91` · Org: `22`  
-OpenAPI público: **no disponible** (`GET /api/schema/?format=json` → 404). Solo existe  
-`GET /api/schema/contract/` con `schema_sha256=2515f6ea…`. El front no pudo regenerar tipos desde OpenAPI.
+OpenAPI canónico: repo **yggdra_infra** → `api/schema/openapi.yaml`  
+Público en runtime: `GET /api/schema/?format=json` → **404**. Solo  
+`GET /api/schema/contract/` con `schema_sha256` (freeze). El front **no** regenera tipos desde la URL pública.
 
-## Rutas verificadas (sin auth)
+## Auth
 
-| Ruta | Estado |
-|------|--------|
-| `GET /forja/students/` | 401 (existe) |
-| `GET /forja/students/me/` | 401 (existe) — usado por rol alumno |
-| `GET /forja/services/` | 401 (existe) |
-| `GET /forja/training-plan/` | 401 (existe) |
-| `GET /forja/meals/` | 401 (existe) |
-| `GET /forja/water/` | 401 (existe) |
-| `GET /forja/workout-logs/` | 401 (existe) |
-| `GET /forja/check-ins/` | 401 (existe) |
-| `GET /forja/adherence-rules/` | 401 (existe) |
-| `POST /forja/adherence-rules/{id}/toggle/` | 401 (existe) |
-| `GET /forja/threads/` | 401 (existe) |
-| `GET /forja/threads/{id}/messages/` | 401 (existe) |
-| `GET /forja/threads/{id}/events/` | 401 / SSE (`Autenticación requerida`) |
-| `GET /forja/subscriptions/` | 401 (existe) |
-| `GET /forja/students/{id}/training-plan/` | **404** (no usar anidadas) |
-| `GET /forja/students/{id}/meals/` | **404** |
-| `GET /forja/students/{id}/water/` | **404** |
-| `GET /forja/students/{id}/workout-logs/` | **404** |
-| `GET /forja/students/{id}/check-ins/` | **404** |
+```
+POST /api/accounts/users/login_complete/
+Body: { email, password }
+→ { token, user, branches[], forja_role }
 
-El front ya apunta a rutas **top-level** con filtro `?student=<id>`.
+Header: Authorization: Token <token>
+Header: X-Branch-ID: 91
+```
 
-## Supuestos del front (confirmar o corregir)
+- `forja_role` viene en la **raíz** y en `user.forja_role`: `alumno | coach | admin | null`.
+- El cliente usa `res.forja_role ?? res.user.forja_role` (fallback UI solo si ambos son null).
 
-Sin OpenAPI, el cliente normaliza ambos estilos. Confirmar el contrato canónico:
+## Rutas
+
+**No hay rutas anidadas** de recursos (p. ej. `/students/{id}/meals/`). Todo es top-level con `?student=<id>`.
+
+### Extras confirmados
+
+| Método | Ruta |
+|--------|------|
+| PATCH | `/forja/students/{id}/macros/` |
+| PATCH | `/forja/students/{id}/status/` |
+| GET | `/forja/students/{id}/adherence/weekly/?week_start=` |
+| GET | `/forja/adherence/weekly/` |
+| GET/POST | `/forja/threads/{id}/messages/` |
+| POST | `/forja/threads/{id}/stream-token/` |
+| POST | `/forja/adherence-rules/{id}/toggle/` |
+| GET | `/forja/threads/{id}/events/?stream_token=` |
 
 ### Filtros
-- `?student=<pk>` en `training-plan`, `meals`, `water`, `workout-logs`, `check-ins`  
-  ¿Es `student` o `student_id`?
 
-### Campos (snake_case asumido)
-- **Student:** `id`, `full_name`, `email`, `plan`/`plan_id` (+ `plan.name` o `plan_name`), `status`, `adherence_pct`, `started_at`, `goals`, `macros{calories,protein_g,carbs_g,fat_g,water_ml}`
-- **Service:** `id`, `name`, `description`, `price_clp`, `billing` (`mensual|anual|unico`), `active`/`is_active`, `features[]`
-- **TrainingPlan:** `id`, `student`/`student_id`, `title`, `weeks`, `days[]` con `day_label`, `focus`, `exercises[{name,sets,reps,rest_sec}]`
-- **Meal:** `student`, `date`, `meal`, `description`, `calories`, `protein_g`, `carbs_g`, `fat_g`
-- **Water:** `student`, `date`, `ml`
-- **WorkoutLog:** `student`, `date`, `workout_day`/`workout_day_id`, `title`, `completed`, `notes`
-- **CheckIn:** `student`, `date`, `weight_kg`, `energy` (1–5), `sleep_hours`, `notes`, `adherence_ok`
-- **AdherenceRule:** `name`, `description`, `metric`, `target_per_week`, `enabled`
-- **Thread/Message:** `student`, `unread`, `last_message`, `body`, `sender` (`coach|alumno`), `created_at`
-- **Subscription:** `student`, `plan`, `amount_clp`, `status`, `started_at`, `note`
-- **login_complete:** `forja_role` ∈ `coach|alumno|admin` + `branches[]` (idealmente incluye id `91`)
+| Recurso | Filtros |
+|---------|---------|
+| `training-plan` | `student`, **`is_current`** |
+| `workout-logs` | `student`, `performed_on`, `completed` |
+| `meals` | `student`, `logged_on`, `meal_type` |
+| `water` | `student`, `logged_on` |
+| `check-ins` | `student`, `checked_on` |
+| `subscriptions` | `service`, `status` |
+| `students` | `status`, `service` |
+
+## Modelos (shape canónico)
+
+### training-plan
+
+Lista **paginada** `{ count, next, previous, results }` (`page_size` default 10, máx 200).
+
+Plan vigente:
+
+```
+GET /forja/training-plan/?student=X&is_current=true
+→ results[0]
+```
+
+Campos:
+
+- Plan: `id`, `student`, `title`, `notes`, `effective_from`, `effective_to`, `is_current`
+- `days[]`: `id`, `name`, `weekday`, `position`, `notes`, `exercises[]`
+- `exercises[]`: `id`, `name`, `position`, `sets`, `reps`, `rest_seconds`, `tempo`, `load_kg`, `notes`, `video_url`
+
+Las **macros no van en el plan**; viven en el alumno.
+
+### students (macros)
+
+`calories_target`, `protein_target`, `carbs_target`, `fats_target`, `water_target_ml`,  
+`sessions_per_week`, `height_cm`, `weight_kg`, `goal`  
+(+ `PATCH …/macros/`).
+
+### meals
+
+`student`, `logged_on`, `meal_type`, `description`, `calories`, `protein`, `carbs`, `fats`, `notes`
+
+### water
+
+`student`, `logged_on`, `ml`
+
+### workout-logs
+
+`student`, `performed_on`, `workout_day`, `title`, `completed`, `notes`
+
+### check-ins
+
+`student`, `checked_on`, …
+
+### services
+
+`name`, `description`, `price`, `billing_period` (`monthly|quarterly|yearly|one_time`),  
+`duration_weeks`, `includes_nutrition`, `includes_training`
 
 ### SSE
-- El front abre `GET /forja/threads/{id}/events/` con headers `Authorization: Token …` y `X-Branch-ID` vía **fetch stream** (EventSource no envía headers).
-- ¿El backend acepta eso, o exige `?token=` / cookie de sesión?
 
-### IDs
-- El front convierte todos los `id` a `string` en UI. ¿Los PK son int?
+1. `POST /forja/threads/{id}/stream-token/` → `{ stream_token, expires_in: 120, stream_path }`
+2. `EventSource` a `stream_path` (o `GET …/events/`) con `?stream_token=` y opcional `?after_id=`
 
-## Gaps / pedidos a Yggdra
+No usar `Authorization` en EventSource; el token de stream es de corta vida.
 
-1. **Publicar OpenAPI** otra vez en `GET /api/schema/?format=json` (o URL documentada) para alinear tipos.
-2. Confirmar nombres exactos de filtros (`student` vs `student_id`) y shape de `training-plan` (objeto vs lista paginada).
-3. Confirmar auth SSE (headers vs query token).
-4. ¿Existe CRUD de `services` como planes vendibles del coach, o el plan vive solo como FK en student/subscription?
-5. Crear al menos un usuario **coach** (y opcional admin) en sucursal **91** para pruebas E2E (sin inventar desde el front).
-6. Flujo alumno: confirmar que `students/me/` devuelve el alumno ligado al user token tras setear contraseña con forgot-password.
+## Alineación del front
 
-## CORS
+| Área | Estado |
+|------|--------|
+| Rutas top-level + `?student=` | OK |
+| `training-plan?is_current=true` → `results[0]` | OK |
+| Payloads meals/water/workouts con campos canónicos | OK |
+| Normalización API → modelo UI (`protein_g`, `date`, etc.) | OK |
+| SSE vía `stream-token` + EventSource | OK |
+| `forja_role` raíz + `user.forja_role` | OK |
+| `patchStudentMacros` / `patchStudentStatus` / adherence weekly | Cliente listo; UI de edición pendiente |
+| Regenerar tipos desde OpenAPI público | Bloqueado (404); usar `yggdra_infra` |
 
-OK: `https://felipebarraza6.github.io` ya permitido (preflight OPTIONS 200 con `X-Branch-ID`).
+## Pendiente / seguimiento
+
+1. Publicar de nuevo OpenAPI en `GET /api/schema/?format=json` (o documentar URL) para codegen.
+2. Usuario coach (y opcional admin) en branch **91** para E2E reales (no crear desde el front).
+3. Confirmar shape exacto de `adherence/weekly/` y de POST `subscriptions` (campos `amount_*` vs `price`).
+4. Actualizar `docs/backend-needs.md` (aún describe rutas anidadas obsoletas) en un follow-up.
+
+CORS staging (`https://felipebarraza6.github.io`) OK.

@@ -5,6 +5,8 @@ import type {
   CheckIn,
   MacroTargets,
   MealLog,
+  ServiceBillingPeriod,
+  ServiceBillingUi,
   ServicePlan,
   Student,
   SubscriptionRecord,
@@ -30,15 +32,49 @@ function str(value: unknown, fallback = ''): string {
   return value == null ? fallback : String(value)
 }
 
+function bool(value: unknown, fallback = false): boolean {
+  if (value == null) return fallback
+  return Boolean(value)
+}
+
+/** Macros viven en el alumno (calories_target, protein_target, …). */
 function macrosOf(raw: Record<string, unknown>): MacroTargets {
-  const m = (raw.macros ?? raw) as Record<string, unknown>
+  const nested =
+    raw.macros && typeof raw.macros === 'object'
+      ? (raw.macros as Record<string, unknown>)
+      : null
+  const m = nested ?? raw
   return {
-    calories: num(m.calories ?? m.kcal, 0),
-    protein_g: num(m.protein_g ?? m.protein, 0),
-    carbs_g: num(m.carbs_g ?? m.carbs ?? m.carbohydrates, 0),
-    fat_g: num(m.fat_g ?? m.fat, 0),
-    water_ml: num(m.water_ml ?? m.water, 0),
+    calories: num(m.calories_target ?? m.calories ?? m.kcal, 0),
+    protein_g: num(m.protein_target ?? m.protein_g ?? m.protein, 0),
+    carbs_g: num(m.carbs_target ?? m.carbs_g ?? m.carbs ?? m.carbohydrates, 0),
+    fat_g: num(m.fats_target ?? m.fat_g ?? m.fat ?? m.fats, 0),
+    water_ml: num(m.water_target_ml ?? m.water_ml ?? m.water, 0),
   }
+}
+
+const BILLING_UI: Record<string, ServiceBillingUi> = {
+  monthly: 'mensual',
+  mensual: 'mensual',
+  quarterly: 'trimestral',
+  trimestral: 'trimestral',
+  yearly: 'anual',
+  anual: 'anual',
+  one_time: 'unico',
+  unico: 'unico',
+  único: 'unico',
+}
+
+const BILLING_API: Record<string, ServiceBillingPeriod> = {
+  monthly: 'monthly',
+  mensual: 'monthly',
+  quarterly: 'quarterly',
+  trimestral: 'quarterly',
+  yearly: 'yearly',
+  anual: 'yearly',
+  one_time: 'one_time',
+  unico: 'one_time',
+  único: 'one_time',
 }
 
 export function normalizeStudent(raw: Record<string, unknown>): Student {
@@ -61,40 +97,67 @@ export function normalizeStudent(raw: Record<string, unknown>): Student {
     status: (str(raw.status, 'activo') as Student['status']) || 'activo',
     adherence_pct: num(raw.adherence_pct ?? raw.adherence, 0),
     started_at: str(raw.started_at ?? raw.created_at).slice(0, 10),
-    goals: str(raw.goals ?? raw.goal),
+    goals: str(raw.goal ?? raw.goals),
     macros: macrosOf(raw),
+    sessions_per_week:
+      raw.sessions_per_week != null ? num(raw.sessions_per_week) : undefined,
+    height_cm: raw.height_cm != null ? num(raw.height_cm) : undefined,
+    weight_kg: raw.weight_kg != null ? num(raw.weight_kg) : undefined,
   }
 }
 
 export function normalizeService(raw: Record<string, unknown>): ServicePlan {
+  const billingRaw = str(raw.billing_period ?? raw.billing ?? raw.billing_cycle, 'monthly')
+  const billing_period = BILLING_API[billingRaw] ?? 'monthly'
+  const billing = BILLING_UI[billingRaw] ?? 'mensual'
+
+  const includes_nutrition = bool(raw.includes_nutrition)
+  const includes_training = bool(raw.includes_training, true)
+
   const features = Array.isArray(raw.features)
     ? raw.features.map(String)
     : typeof raw.features === 'string'
       ? [raw.features]
-      : []
-  const billingRaw = str(raw.billing ?? raw.billing_cycle, 'mensual')
-  const billing = (['mensual', 'anual', 'unico'].includes(billingRaw)
-    ? billingRaw
-    : 'mensual') as ServicePlan['billing']
+      : [
+          ...(includes_training ? ['Entrenamiento'] : []),
+          ...(includes_nutrition ? ['Nutrición'] : []),
+        ]
 
   return {
     id: idStr(raw.id),
     name: str(raw.name),
     description: str(raw.description),
-    price_clp: num(raw.price_clp ?? raw.price ?? raw.amount_clp),
+    price_clp: num(raw.price ?? raw.price_clp ?? raw.amount_clp),
     billing,
-    active: Boolean(raw.active ?? raw.is_active ?? true),
+    billing_period,
+    duration_weeks: raw.duration_weeks != null ? num(raw.duration_weeks) : null,
+    includes_nutrition,
+    includes_training,
+    active: bool(raw.active ?? raw.is_active, true),
     features,
   }
 }
 
+function weeksBetween(from: string | null, to: string | null): number {
+  if (!from || !to) return 0
+  const a = new Date(from).getTime()
+  const b = new Date(to).getTime()
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return 0
+  return Math.max(1, Math.round((b - a) / (7 * 24 * 60 * 60 * 1000)))
+}
+
 function normalizeExercise(raw: Record<string, unknown>): WorkoutExercise {
   return {
+    id: raw.id != null ? idStr(raw.id) : undefined,
     name: str(raw.name),
     sets: num(raw.sets, 3),
     reps: str(raw.reps, '8-10'),
-    rest_sec: num(raw.rest_sec ?? raw.rest, 60),
+    rest_sec: num(raw.rest_seconds ?? raw.rest_sec ?? raw.rest, 60),
+    position: raw.position != null ? num(raw.position) : undefined,
+    tempo: raw.tempo != null ? str(raw.tempo) : undefined,
+    load_kg: raw.load_kg != null ? num(raw.load_kg) : undefined,
     notes: raw.notes != null ? str(raw.notes) : undefined,
+    video_url: raw.video_url != null ? str(raw.video_url) : undefined,
   }
 }
 
@@ -102,10 +165,15 @@ function normalizeDay(raw: Record<string, unknown>): WorkoutDay {
   const exercises = Array.isArray(raw.exercises)
     ? raw.exercises.map((e) => normalizeExercise(e as Record<string, unknown>))
     : []
+  const name = str(raw.name ?? raw.day_label ?? raw.label, 'Día')
+  const notes = raw.notes != null ? str(raw.notes) : ''
   return {
     id: idStr(raw.id),
-    day_label: str(raw.day_label ?? raw.label ?? raw.name, 'Día'),
-    focus: str(raw.focus ?? raw.title),
+    day_label: name,
+    focus: str(raw.focus ?? raw.title ?? notes, notes || name),
+    weekday: raw.weekday != null ? num(raw.weekday) : null,
+    position: raw.position != null ? num(raw.position) : undefined,
+    notes: notes || undefined,
     exercises,
   }
 }
@@ -116,11 +184,24 @@ export function normalizeTrainingPlan(raw: Record<string, unknown>): TrainingPla
     : Array.isArray(raw.workout_days)
       ? raw.workout_days.map((d) => normalizeDay(d as Record<string, unknown>))
       : []
+  const effective_from =
+    raw.effective_from != null ? str(raw.effective_from).slice(0, 10) : null
+  const effective_to =
+    raw.effective_to != null ? str(raw.effective_to).slice(0, 10) : null
+  const weeks =
+    num(raw.weeks, 0) ||
+    weeksBetween(effective_from, effective_to) ||
+    0
+
   return {
     id: idStr(raw.id),
     student_id: idStr(raw.student_id ?? raw.student),
     title: str(raw.title ?? raw.name, 'Plan'),
-    weeks: num(raw.weeks, 4),
+    notes: str(raw.notes),
+    effective_from,
+    effective_to,
+    is_current: bool(raw.is_current, true),
+    weeks,
     days,
   }
 }
@@ -129,13 +210,14 @@ export function normalizeMeal(raw: Record<string, unknown>): MealLog {
   return {
     id: idStr(raw.id),
     student_id: idStr(raw.student_id ?? raw.student),
-    date: str(raw.date).slice(0, 10),
-    meal: (str(raw.meal, 'snack') as MealLog['meal']) || 'snack',
+    date: str(raw.logged_on ?? raw.date).slice(0, 10),
+    meal: (str(raw.meal_type ?? raw.meal, 'snack') as MealLog['meal']) || 'snack',
     description: str(raw.description ?? raw.name),
     calories: num(raw.calories ?? raw.kcal),
-    protein_g: num(raw.protein_g ?? raw.protein),
-    carbs_g: num(raw.carbs_g ?? raw.carbs),
-    fat_g: num(raw.fat_g ?? raw.fat),
+    protein_g: num(raw.protein ?? raw.protein_g),
+    carbs_g: num(raw.carbs ?? raw.carbs_g),
+    fat_g: num(raw.fats ?? raw.fat_g ?? raw.fat),
+    notes: raw.notes != null ? str(raw.notes) : undefined,
   }
 }
 
@@ -143,7 +225,7 @@ export function normalizeWater(raw: Record<string, unknown>): WaterLog {
   return {
     id: idStr(raw.id),
     student_id: idStr(raw.student_id ?? raw.student),
-    date: str(raw.date).slice(0, 10),
+    date: str(raw.logged_on ?? raw.date).slice(0, 10),
     ml: num(raw.ml ?? raw.amount_ml ?? raw.amount),
   }
 }
@@ -152,10 +234,10 @@ export function normalizeWorkoutLog(raw: Record<string, unknown>): WorkoutLog {
   return {
     id: idStr(raw.id),
     student_id: idStr(raw.student_id ?? raw.student),
-    date: str(raw.date).slice(0, 10),
+    date: str(raw.performed_on ?? raw.date).slice(0, 10),
     workout_day_id: idStr(raw.workout_day_id ?? raw.workout_day ?? raw.day_id),
     title: str(raw.title ?? raw.name),
-    completed: Boolean(raw.completed ?? raw.is_completed ?? true),
+    completed: bool(raw.completed ?? raw.is_completed, true),
     notes: raw.notes != null ? str(raw.notes) : undefined,
   }
 }
@@ -165,12 +247,12 @@ export function normalizeCheckIn(raw: Record<string, unknown>): CheckIn {
   return {
     id: idStr(raw.id),
     student_id: idStr(raw.student_id ?? raw.student),
-    date: str(raw.date).slice(0, 10),
+    date: str(raw.checked_on ?? raw.date).slice(0, 10),
     weight_kg: raw.weight_kg != null ? num(raw.weight_kg) : undefined,
     energy,
     sleep_hours: raw.sleep_hours != null ? num(raw.sleep_hours) : undefined,
     notes: raw.notes != null ? str(raw.notes) : undefined,
-    adherence_ok: Boolean(raw.adherence_ok ?? raw.ok ?? true),
+    adherence_ok: bool(raw.adherence_ok ?? raw.ok, true),
   }
 }
 
@@ -181,7 +263,7 @@ export function normalizeRule(raw: Record<string, unknown>): AdherenceRule {
     description: str(raw.description),
     metric: (str(raw.metric, 'entrenos') as AdherenceRule['metric']) || 'entrenos',
     target_per_week: num(raw.target_per_week ?? raw.target, 1),
-    enabled: Boolean(raw.enabled ?? raw.is_active ?? true),
+    enabled: bool(raw.enabled ?? raw.is_active, true),
   }
 }
 
@@ -230,7 +312,7 @@ export function normalizeSubscription(raw: Record<string, unknown>): Subscriptio
     student_name: str(raw.student_name ?? student?.full_name ?? student?.name),
     plan_id: idStr(raw.plan_id ?? raw.service_id ?? plan?.id),
     plan_name: str(raw.plan_name ?? raw.service_name ?? plan?.name),
-    amount_clp: num(raw.amount_clp ?? raw.amount ?? raw.price_clp),
+    amount_clp: num(raw.amount_clp ?? raw.amount ?? raw.price ?? raw.price_clp),
     status: (str(raw.status, 'pendiente') as SubscriptionRecord['status']) || 'pendiente',
     started_at: str(raw.started_at ?? raw.created_at).slice(0, 10),
     next_billing_at: raw.next_billing_at != null ? str(raw.next_billing_at).slice(0, 10) : undefined,
@@ -239,5 +321,5 @@ export function normalizeSubscription(raw: Record<string, unknown>): Subscriptio
 }
 
 export function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+  return value != null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 }

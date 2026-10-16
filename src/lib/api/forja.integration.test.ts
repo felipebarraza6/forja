@@ -125,7 +125,9 @@ describe('contrato /api/forja/ (mocks)', () => {
     const { getTrainingPlan } = await import('./forja')
     const plan = await getTrainingPlan('1')
     expect(plan?.title).toBe('Bloque')
-    expect(calls[0]?.url).toBe(`${API}/forja/training-plan/?student=1`)
+    expect(calls[0]?.url).toBe(
+      `${API}/forja/training-plan/?student=1&is_current=true&page_size=1`,
+    )
   })
 
   it('meals, water, workout-logs y check-ins usan ?student=', async () => {

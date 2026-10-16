@@ -23,8 +23,12 @@ export const demoPlans: ServicePlan[] = [
     description: 'Plan de entrenamiento + seguimiento semanal.',
     price_clp: 89000,
     billing: 'mensual',
+    billing_period: 'monthly',
+    duration_weeks: 4,
+    includes_nutrition: false,
+    includes_training: true,
     active: true,
-    features: ['Rutina personalizada', 'Check-in semanal', 'Chat con coach'],
+    features: ['Entrenamiento'],
   },
   {
     id: 'plan-elite',
@@ -32,8 +36,12 @@ export const demoPlans: ServicePlan[] = [
     description: 'Entrenamiento, nutrición y macros con revisión continua.',
     price_clp: 149000,
     billing: 'mensual',
+    billing_period: 'monthly',
+    duration_weeks: 12,
+    includes_nutrition: true,
+    includes_training: true,
     active: true,
-    features: ['Todo Base', 'Macros diarios', 'Ajustes de adherencia', 'Prioridad en chat'],
+    features: ['Entrenamiento', 'Nutrición'],
   },
   {
     id: 'plan-eval',
@@ -41,8 +49,12 @@ export const demoPlans: ServicePlan[] = [
     description: 'Sesión única de diagnóstico y propuesta de plan.',
     price_clp: 45000,
     billing: 'unico',
+    billing_period: 'one_time',
+    duration_weeks: 1,
+    includes_nutrition: false,
+    includes_training: true,
     active: true,
-    features: ['Anamnesis', 'Propuesta de rutina', 'Informe PDF'],
+    features: ['Entrenamiento'],
   },
 ]
 
@@ -89,12 +101,18 @@ export const demoTraining: TrainingPlan = {
   id: 'tp-1',
   student_id: 'stu-1',
   title: 'Bloque fuerza — 6 semanas',
+  notes: 'Priorizar técnica en sentadilla.',
+  effective_from: '2026-09-01',
+  effective_to: '2026-10-13',
+  is_current: true,
   weeks: 6,
   days: [
     {
       id: 'wd-a',
       day_label: 'Día A',
       focus: 'Empuje',
+      weekday: 1,
+      position: 1,
       exercises: [
         { name: 'Press banca', sets: 4, reps: '6-8', rest_sec: 120 },
         { name: 'Press militar', sets: 3, reps: '8-10', rest_sec: 90 },
@@ -105,6 +123,8 @@ export const demoTraining: TrainingPlan = {
       id: 'wd-b',
       day_label: 'Día B',
       focus: 'Tirón',
+      weekday: 3,
+      position: 2,
       exercises: [
         { name: 'Dominadas', sets: 4, reps: 'AMRAP', rest_sec: 120 },
         { name: 'Remo con barra', sets: 4, reps: '8-10', rest_sec: 90 },
@@ -115,6 +135,8 @@ export const demoTraining: TrainingPlan = {
       id: 'wd-c',
       day_label: 'Día C',
       focus: 'Pierna',
+      weekday: 5,
+      position: 3,
       exercises: [
         { name: 'Sentadilla', sets: 4, reps: '5-8', rest_sec: 150 },
         { name: 'Peso muerto rumano', sets: 3, reps: '8-10', rest_sec: 120 },
