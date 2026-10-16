@@ -1,21 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { createMeal, getStudent, listMeals } from '@/lib/api/forja'
+import { createMeal, listMeals } from '@/lib/api/forja'
+import { useMyStudent } from '@/hooks/use-my-student'
 import type { MealLog } from '@/lib/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 
-const STUDENT_ID = 'stu-1'
-
 export function AlumnoNutricion() {
+  const studentQ = useMyStudent()
+  const id = studentQ.data?.id ?? ''
   const qc = useQueryClient()
-  const student = useQuery({
-    queryKey: ['student', STUDENT_ID],
-    queryFn: () => getStudent(STUDENT_ID),
+  const meals = useQuery({
+    queryKey: ['meals', id],
+    queryFn: () => listMeals(id),
+    enabled: !!id,
   })
-  const meals = useQuery({ queryKey: ['meals', STUDENT_ID], queryFn: () => listMeals(STUDENT_ID) })
   const [meal, setMeal] = useState<MealLog['meal']>('once')
   const [description, setDescription] = useState('')
   const [calories, setCalories] = useState(300)
@@ -24,7 +25,7 @@ export function AlumnoNutricion() {
   const add = useMutation({
     mutationFn: () =>
       createMeal({
-        student_id: STUDENT_ID,
+        student_id: id,
         date: new Date().toISOString().slice(0, 10),
         meal,
         description: description || 'Comida registrada',
@@ -36,11 +37,12 @@ export function AlumnoNutricion() {
     onSuccess: async () => {
       setDescription('')
       toast.success('Comida registrada')
-      await qc.invalidateQueries({ queryKey: ['meals', STUDENT_ID] })
+      await qc.invalidateQueries({ queryKey: ['meals', id] })
     },
+    onError: (e: Error) => toast.error(e.message),
   })
 
-  const macros = student.data?.macros
+  const macros = studentQ.data?.macros
 
   return (
     <div className="space-y-6">
@@ -59,6 +61,7 @@ export function AlumnoNutricion() {
         className="surface grid gap-4 p-5 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault()
+          if (!id) return
           add.mutate()
         }}
       >
@@ -105,7 +108,7 @@ export function AlumnoNutricion() {
           />
         </div>
         <div className="flex items-end">
-          <Button type="submit" disabled={add.isPending}>
+          <Button type="submit" disabled={add.isPending || !id}>
             Registrar comida
           </Button>
         </div>

@@ -10,8 +10,8 @@ import type { Role } from '@/lib/api/types'
 import { cn } from '@/lib/utils'
 
 export function Login() {
-  const [email, setEmail] = useState('coach@forja.demo')
-  const [password, setPassword] = useState('forja')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [role, setRole] = useState<Role>('coach')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,7 +83,8 @@ export function Login() {
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-12">
           <h1 className="font-display text-3xl font-bold tracking-tight">Entrar</h1>
           <p className="mt-2 text-sm text-text-muted">
-            Usa tu cuenta Yggdra o entra en modo demo si la API no está disponible.
+            Cuenta Yggdra (org Forja, sucursal 91). Los alumnos recién creados entran con «olvidé mi
+            contraseña». El modo demo es solo respaldo offline.
           </p>
 
           <div className="mt-6 flex gap-2">

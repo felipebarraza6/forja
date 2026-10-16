@@ -1,7 +1,13 @@
 name: Deploy staging (GitHub Pages)
 
-# El repo tiene Pages legacy: branch main, path /.
-# Publicamos el contenido de dist/ en la raíz de main.
+# IMPORTANTE: Pages del repo está en modo LEGACY (Settings → Pages →
+# "Deploy from a branch" → main /). El token del agente/CI NO puede
+# cambiarlo a "GitHub Actions" (API 403). Por eso el CD publica el
+# contenido de dist/ en la raíz de main en cada push a main.
+#
+# Cuando alguien con admin cambie Source → GitHub Actions, se puede
+# volver al flujo actions/upload-pages-artifact + deploy-pages y entonces
+# dejar de commitear assets/index.* en main.
 
 on:
   push:
@@ -18,7 +24,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[skip ci]') }}
     env:
       VITE_YGGDRA_API_BASE: https://api.yggdra.cl/api
     steps:
@@ -32,14 +38,26 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
       - name: Build
         run: npm run build
 
-      - name: Publicar dist en la raíz de main
+      - name: Publicar dist en la raíz de main (Pages legacy)
         run: |
           set -euo pipefail
+          # Restaurar plantilla de desarrollo en el árbol de trabajo no es
+          # necesario: publicamos solo artefactos de dist.
           rm -rf assets
-          cp -a dist/assets assets
+          mkdir -p assets
+          cp -a dist/assets/. assets/
           cp -f dist/index.html index.html
           cp -f dist/404.html 404.html
           cp -f dist/favicon.svg favicon.svg
@@ -55,7 +73,7 @@ jobs:
             git push origin HEAD:main
           fi
 
-          # Espejo en gh-pages (por si se cambia el source después)
+          # Espejo gh-pages (por si se cambia el source a esa rama)
           TMP=$(mktemp -d)
           cp -a dist/. "$TMP/"
           touch "$TMP/.nojekyll"

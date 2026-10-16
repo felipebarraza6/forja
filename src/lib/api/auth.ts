@@ -1,4 +1,5 @@
-import { apiRequest, BRANCH_KEY, DEMO_KEY, SESSION_KEY, TOKEN_KEY } from './client'
+import { ApiError, apiRequest, BRANCH_KEY, DEMO_KEY, SESSION_KEY, TOKEN_KEY } from './client'
+import { FORJA_BRANCH_ID } from './config'
 import type { Branch, LoginResponse, Role, User } from './types'
 import { demoLogin } from './demo'
 
@@ -25,15 +26,22 @@ export async function loginComplete(
     })
     const role = res.forja_role ?? preferredRole ?? inferRole(res.user)
     const branches = res.branches ?? []
+    const branchId = pickForjaBranch(branches)
+    localStorage.removeItem(DEMO_KEY)
     return persistSession({
       token: res.token,
-      user: res.user,
+      user: { ...res.user, role },
       role,
       branches,
-      branchId: branches[0]?.id ?? null,
+      branchId,
       demo: false,
     })
-  } catch {
+  } catch (err) {
+    // Credenciales / validación: no caer a demo en silencio
+    if (err instanceof ApiError && err.status && err.status >= 400 && err.status < 500) {
+      throw err
+    }
+    // Red / 5xx → demo de respaldo
     const demo = demoLogin(email, preferredRole ?? 'coach')
     localStorage.setItem(DEMO_KEY, '1')
     return persistSession(demo)
@@ -91,6 +99,7 @@ function persistSession(session: SessionState): SessionState {
   }
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   if (session.demo) localStorage.setItem(DEMO_KEY, '1')
+  else localStorage.removeItem(DEMO_KEY)
   return session
 }
 
@@ -99,4 +108,12 @@ function inferRole(user: User): Role {
     return user.role
   }
   return 'coach'
+}
+
+/** Prefiere la sucursal Forja (91) si viene en el login; si no, la primera. */
+function pickForjaBranch(branches: Branch[]): number {
+  const forja = branches.find((b) => b.id === FORJA_BRANCH_ID)
+  if (forja) return forja.id
+  if (branches[0]) return branches[0].id
+  return FORJA_BRANCH_ID
 }

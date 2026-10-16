@@ -1,28 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { completeWorkout, getTrainingPlan, listWorkoutLogs } from '@/lib/api/forja'
+import { useMyStudent } from '@/hooks/use-my-student'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 
-const STUDENT_ID = 'stu-1'
-
 export function AlumnoEntreno() {
+  const studentQ = useMyStudent()
+  const id = studentQ.data?.id ?? ''
   const qc = useQueryClient()
   const plan = useQuery({
-    queryKey: ['training', STUDENT_ID],
-    queryFn: () => getTrainingPlan(STUDENT_ID),
+    queryKey: ['training', id],
+    queryFn: () => getTrainingPlan(id),
+    enabled: !!id,
   })
   const logs = useQuery({
-    queryKey: ['workouts', STUDENT_ID],
-    queryFn: () => listWorkoutLogs(STUDENT_ID),
+    queryKey: ['workouts', id],
+    queryFn: () => listWorkoutLogs(id),
+    enabled: !!id,
   })
 
   const complete = useMutation({
     mutationFn: (dayId: string) => {
       const day = plan.data?.days.find((d) => d.id === dayId)
       return completeWorkout({
-        student_id: STUDENT_ID,
+        student_id: id,
         date: new Date().toISOString().slice(0, 10),
         workout_day_id: dayId,
         title: day ? `${day.day_label} — ${day.focus}` : dayId,
@@ -31,9 +34,12 @@ export function AlumnoEntreno() {
     },
     onSuccess: async () => {
       toast.success('Entreno registrado')
-      await qc.invalidateQueries({ queryKey: ['workouts', STUDENT_ID] })
+      await qc.invalidateQueries({ queryKey: ['workouts', id] })
     },
+    onError: (e: Error) => toast.error(e.message),
   })
+
+  if (studentQ.isLoading) return <p className="text-text-muted">Cargando…</p>
 
   return (
     <div className="space-y-6">
@@ -63,7 +69,7 @@ export function AlumnoEntreno() {
               className="mt-4"
               variant="outline"
               onClick={() => complete.mutate(day.id)}
-              disabled={complete.isPending}
+              disabled={complete.isPending || !id}
             >
               Marcar completado
             </Button>

@@ -1,4 +1,5 @@
 import type { Paginated } from './types'
+import { FORJA_BRANCH_ID } from './config'
 
 export const API_BASE: string =
   (import.meta.env.VITE_YGGDRA_API_BASE as string | undefined) ??
@@ -14,7 +15,7 @@ export function getToken(): string | null {
 }
 
 export function getBranchId(): string | null {
-  return localStorage.getItem(BRANCH_KEY)
+  return localStorage.getItem(BRANCH_KEY) ?? String(FORJA_BRANCH_ID)
 }
 
 export function isDemoMode(): boolean {
@@ -74,8 +75,15 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
     if (!res.ok) {
       let detail = `API ${res.status} ${res.statusText}`
       try {
-        const data = (await res.json()) as { detail?: string; error?: string }
-        detail = data.detail ?? data.error ?? detail
+        const data = (await res.json()) as {
+          detail?: string | Record<string, unknown>
+          error?: string
+        }
+        if (typeof data.detail === 'string') detail = data.detail
+        else if (data.error) detail = data.error
+        else if (data.detail && typeof data.detail === 'object') {
+          detail = JSON.stringify(data.detail)
+        }
       } catch {
         /* ignore */
       }
@@ -84,6 +92,12 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
 
     if (res.status === 204) return undefined as T
     return (await res.json()) as T
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ApiError('Tiempo de espera agotado', 408)
+    }
+    throw new ApiError(err instanceof Error ? err.message : 'Error de red', 0)
   } finally {
     clearTimeout(timer)
   }
@@ -95,7 +109,18 @@ export function apiList<T>(path: string): Promise<T[]> {
   )
 }
 
-/** Intenta la API real; si falla, usa el fallback (modo demo / offline). */
+function isNetworkOrOffline(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return true
+  // 0 = fallo de red; 408 timeout; 5xx servidor caído
+  return err.status === 0 || err.status === 408 || (err.status != null && err.status >= 500)
+}
+
+/**
+ * API real primero. Demo solo si:
+ * - ya estamos en modo demo, o
+ * - la API no es alcanzable (red / 5xx).
+ * Errores 4xx de negocio se propagan (no se enmascaran con demo).
+ */
 export async function withDemoFallback<T>(
   live: () => Promise<T>,
   demo: () => T | Promise<T>,
@@ -105,7 +130,20 @@ export async function withDemoFallback<T>(
   }
   try {
     return { data: await live(), demo: false }
-  } catch {
-    return { data: await demo(), demo: true }
+  } catch (err) {
+    if (isNetworkOrOffline(err)) {
+      return { data: await demo(), demo: true }
+    }
+    throw err
   }
+}
+
+export function qs(params: Record<string, string | number | undefined | null>): string {
+  const sp = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '') continue
+    sp.set(k, String(v))
+  }
+  const s = sp.toString()
+  return s ? `?${s}` : ''
 }

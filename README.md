@@ -34,23 +34,27 @@ Scripts:
 - **Coach:** panel, alumnos, servicios/planes, adherencia, mensajes, registro manual de suscripciones
 - **Alumno:** ver plan, registrar entrenos / comidas / agua, chat con el coach
 
-Si la API no responde o aún no existen los endpoints `/api/forja/*`, la app entra en **modo demo** (botones en `/login` o `?demo=coach` / `?demo=alumno`).
+API real: `VITE_YGGDRA_API_BASE` (default `https://api.yggdra.cl/api`). Login usa `forja_role` y branch **91**.  
+**Modo demo** solo con los botones de `/login` (`?demo=coach` / `?demo=alumno`) o si la API no es alcanzable (red/5xx). Errores 4xx de credenciales no caen a demo.
 
 ## CI / CD
 
 - **CI** (`.github/workflows/ci.yml`): lint + typecheck + tests + build en cada PR/push a `main`
 - **CD** (`.github/workflows/deploy-pages.yml`): despliega staging a GitHub Pages en cada merge a `main`
 
-### Activar GitHub Pages (una vez)
+### Staging (GitHub Pages)
 
-El workflow de deploy falla con *Failed to create deployment (404)* hasta que Pages esté habilitado:
+URL: https://felipebarraza6.github.io/forja/
 
-1. Abrir https://github.com/felipebarraza6/forja/settings/pages
-2. En **Build and deployment → Source**, elegir **GitHub Actions** (no “Deploy from a branch”)
-3. Guardar / confirmar
-4. Re-lanzar el workflow: Actions → **Deploy staging (GitHub Pages)** → *Run workflow* (branch `main`), o hacer un push vacío a `main`
-5. Staging esperado: https://felipebarraza6.github.io/forja/
-6. Añadir `https://felipebarraza6.github.io` a CORS del backend (ver `docs/backend-needs.md`)
+**Estado actual:** Pages está en modo **legacy** (`main` /). El CD (`.github/workflows/deploy-pages.yml`) publica el `dist/` en la raíz de `main` en cada merge. El token de CI **no puede** cambiar Source → GitHub Actions (API 403).
+
+Para migrar a Actions (opcional, requiere admin del repo):
+
+1. https://github.com/felipebarraza6/forja/settings/pages → Source: **GitHub Actions**
+2. Sustituir el job de publish-commit por `upload-pages-artifact` + `deploy-pages`
+3. Dejar de commitear `assets/`, `404.html` y el `index.html` de producción en `main`
+
+CORS staging ya permitido en Yggdra. Sucursal Forja: **91** (`X-Branch-ID`). Contrato: ver `docs/contract-gaps.md`.
 
 ## Backend
 

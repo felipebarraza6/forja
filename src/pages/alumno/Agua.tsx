@@ -1,28 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getStudent, listWater, logWater } from '@/lib/api/forja'
+import { listWater, logWater } from '@/lib/api/forja'
+import { useMyStudent } from '@/hooks/use-my-student'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
-const STUDENT_ID = 'stu-1'
-
 export function AlumnoAgua() {
+  const studentQ = useMyStudent()
+  const id = studentQ.data?.id ?? ''
   const qc = useQueryClient()
-  const student = useQuery({
-    queryKey: ['student', STUDENT_ID],
-    queryFn: () => getStudent(STUDENT_ID),
+  const water = useQuery({
+    queryKey: ['water', id],
+    queryFn: () => listWater(id),
+    enabled: !!id,
   })
-  const water = useQuery({ queryKey: ['water', STUDENT_ID], queryFn: () => listWater(STUDENT_ID) })
 
   const add = useMutation({
-    mutationFn: (ml: number) => logWater(STUDENT_ID, ml),
+    mutationFn: (ml: number) => logWater(id, ml),
     onSuccess: async () => {
       toast.success('Agua registrada')
-      await qc.invalidateQueries({ queryKey: ['water', STUDENT_ID] })
+      await qc.invalidateQueries({ queryKey: ['water', id] })
     },
+    onError: (e: Error) => toast.error(e.message),
   })
 
   const total = (water.data ?? []).reduce((acc, w) => acc + w.ml, 0)
-  const target = student.data?.macros.water_ml ?? 2800
+  const target = studentQ.data?.macros.water_ml ?? 2800
   const pct = Math.min(100, Math.round((total / target) * 100))
 
   return (
@@ -44,7 +46,12 @@ export function AlumnoAgua() {
         <p className="mt-2 text-sm text-text-muted">{pct}% de la meta</p>
         <div className="mt-5 flex flex-wrap gap-2">
           {[250, 500, 750].map((ml) => (
-            <Button key={ml} variant="outline" onClick={() => add.mutate(ml)} disabled={add.isPending}>
+            <Button
+              key={ml}
+              variant="outline"
+              onClick={() => add.mutate(ml)}
+              disabled={add.isPending || !id}
+            >
               +{ml} ml
             </Button>
           ))}

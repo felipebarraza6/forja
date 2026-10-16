@@ -1,27 +1,50 @@
-import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import { getStudent, getTrainingPlan, listMeals, listWater, listWorkoutLogs } from '@/lib/api/forja'
+import { useQuery } from '@tanstack/react-query'
+import { getTrainingPlan, listMeals, listWater, listWorkoutLogs } from '@/lib/api/forja'
+import { useMyStudent } from '@/hooks/use-my-student'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
-const STUDENT_ID = 'stu-1'
-
 export function AlumnoDashboard() {
-  const student = useQuery({ queryKey: ['student', STUDENT_ID], queryFn: () => getStudent(STUDENT_ID) })
+  const studentQ = useMyStudent()
+  const id = studentQ.data?.id ?? ''
+
   const plan = useQuery({
-    queryKey: ['training', STUDENT_ID],
-    queryFn: () => getTrainingPlan(STUDENT_ID),
+    queryKey: ['training', id],
+    queryFn: () => getTrainingPlan(id),
+    enabled: !!id,
   })
-  const meals = useQuery({ queryKey: ['meals', STUDENT_ID], queryFn: () => listMeals(STUDENT_ID) })
-  const water = useQuery({ queryKey: ['water', STUDENT_ID], queryFn: () => listWater(STUDENT_ID) })
+  const meals = useQuery({
+    queryKey: ['meals', id],
+    queryFn: () => listMeals(id),
+    enabled: !!id,
+  })
+  const water = useQuery({
+    queryKey: ['water', id],
+    queryFn: () => listWater(id),
+    enabled: !!id,
+  })
   const workouts = useQuery({
-    queryKey: ['workouts', STUDENT_ID],
-    queryFn: () => listWorkoutLogs(STUDENT_ID),
+    queryKey: ['workouts', id],
+    queryFn: () => listWorkoutLogs(id),
+    enabled: !!id,
   })
 
-  const s = student.data
+  const s = studentQ.data
   const waterToday = (water.data ?? []).reduce((acc, w) => acc + w.ml, 0)
   const kcalToday = (meals.data ?? []).reduce((acc, m) => acc + m.calories, 0)
+
+  if (studentQ.isLoading) {
+    return <p className="text-text-muted">Cargando tu plan…</p>
+  }
+
+  if (studentQ.isError) {
+    return (
+      <p className="text-danger">
+        {studentQ.error instanceof Error ? studentQ.error.message : 'No se pudo cargar el alumno'}
+      </p>
+    )
+  }
 
   return (
     <div className="space-y-8">

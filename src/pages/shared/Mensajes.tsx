@@ -24,7 +24,8 @@ export function Mensajes() {
   const selected = useMemo(() => {
     const list = threads.data ?? []
     if (session.role === 'alumno') {
-      return list.find((t) => t.student_id === 'stu-1') ?? list[0] ?? null
+      // Al alumno la API suele devolver solo su hilo
+      return list[0] ?? null
     }
     return list.find((t) => t.id === activeId) ?? list[0] ?? null
   }, [threads.data, activeId, session.role])
