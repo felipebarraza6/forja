@@ -13,6 +13,7 @@ export default tseslint.config(
       'playwright-report',
       'test-results',
       'docs/validation-screenshots',
+      'src/lib/api/types/**',
     ],
   },
   {
