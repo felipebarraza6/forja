@@ -1,12 +1,12 @@
 name: Staging (GitHub Pages)
 
-# Push a `dev`. Misma URL que producción: GitHub Pages hospeda un solo sitio
+# Push a `staging`. Misma URL que producción: GitHub Pages hospeda un solo sitio
 # por repo. Ver el encabezado de deploy-pages.yml.
 # Hace falta Settings → Pages → Source = GitHub Actions (el token recibe 403).
 
 on:
   push:
-    branches: [dev]
+    branches: [staging]
   workflow_dispatch:
 
 permissions:
