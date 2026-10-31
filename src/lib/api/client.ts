@@ -3,7 +3,9 @@ import { FORJA_BRANCH_ID } from './config'
 
 export const API_BASE: string =
   (import.meta.env.VITE_YGGDRA_API_BASE as string | undefined) ??
-  'https://api.yggdra.cl/api'
+  (import.meta.env.DEV
+    ? 'https://api-staging.yggdra.cl/api'
+    : 'https://api.yggdra.cl/api')
 
 export const TOKEN_KEY = 'forja.token'
 export const BRANCH_KEY = 'forja.branch_id'
